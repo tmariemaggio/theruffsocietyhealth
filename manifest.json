@@ -1,0 +1,22 @@
+{
+  "name": "Ruff Society Health",
+  "short_name": "Ruff Health",
+  "description": "Track your pet's health, walks, vaccines and more.",
+  "start_url": "/login.html",
+  "display": "standalone",
+  "background_color": "#F7F3EE",
+  "theme_color": "#436EA8",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png?v=1761733626",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png?v=1761733626",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
