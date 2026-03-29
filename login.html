@@ -450,20 +450,29 @@ async function handleLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
   let valid = true;
-  if (!isValidEmail(email)) { showErr('login-email-err'); valid = false; }
-  if (!pass) { showErr('login-pass-err'); valid = false; }
+  if (!isValidEmail(email)) { showErr('login-email-err', 'Please enter a valid email'); valid = false; }
+  if (!pass) { showErr('login-pass-err', 'Please enter your password'); valid = false; }
   if (!valid) return;
-  const btn = event.target; btn.textContent = 'Signing in…'; btn.disabled = true;
-  const { data, error } = await _supabase.auth.signInWithPassword({ email, password: pass });
-  if (error) {
+  const btn = event.target; 
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  try {
+    const { data, error } = await _supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+      btn.textContent = 'Sign In'; btn.disabled = false;
+      if (error.message.includes('Email not confirmed')) {
+        showErr('login-email-err', 'Please check your email and confirm your account first');
+      } else if (error.message.includes('Invalid login')) {
+        showErr('login-email-err', 'Wrong email or password — try again');
+      } else {
+        showErr('login-email-err', error.message);
+      }
+      return;
+    }
+    goToApp();
+  } catch(e) {
     btn.textContent = 'Sign In'; btn.disabled = false;
-    showErr('login-email-err', 'Invalid email or password');
-    return;
+    showErr('login-email-err', 'Connection error — please try again');
   }
-  if (document.getElementById('remember-me').checked) {
-    localStorage.setItem('rsh_remember', email);
-  }
-  goToApp();
 }
 function handleSignup() {
   ['signup-first-err','signup-last-err','signup-email-err','signup-pass-err','signup-confirm-err'].forEach(clearErr);
