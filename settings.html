@@ -6,6 +6,8 @@
 <title>Ruff Society Health — Settings</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#436EA8">
+<link rel="icon" type="image/png" href="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png?v=1761733626">
+<link rel="apple-touch-icon" href="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png?v=1761733626">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -140,6 +142,32 @@ body::before {
 .btn-primary { width: 100%; padding: 14px; background: var(--blue); color: white; border: none; border-radius: 14px; font-size: 0.95rem; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer; margin-top: 8px; box-shadow: 0 4px 14px rgba(67,110,168,0.3); }
 .btn-secondary { width: 100%; padding: 13px; background: var(--blue-light); color: var(--blue-deep); border: none; border-radius: 14px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-top: 8px; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const _supabase = supabase.createClient('https://otfwryjoxxkctznboksp.supabase.co', 'sb_publishable_6gSohHTrAI_apcSuKyIJFQ_9bhpRni7');
+
+// Load real user data
+(async () => {
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+  const user = session.user;
+  const meta = user.user_metadata || {};
+  const firstName = meta.first_name || '';
+  const lastName = meta.last_name || '';
+  const initials = ((firstName[0]||'') + (lastName[0]||'')).toUpperCase() || 'ME';
+  const fullName = meta.full_name || firstName + ' ' + lastName || 'User';
+  
+  document.querySelector('.profile-avatar').childNodes[0].textContent = initials;
+  document.querySelector('.profile-name').textContent = fullName;
+  document.querySelector('.profile-email').textContent = user.email;
+})();
+
+async function logoutUser() {
+  await _supabase.auth.signOut();
+  localStorage.clear();
+  window.location.href = 'login.html';
+}
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -157,7 +185,7 @@ body::before {
     </div>
     <div>
       <div class="profile-name">Your Name</div>
-      <div class="profile-email">you@email.com</div>
+      <div class="profile-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6910061c290c04080005470a0604">[email&#160;protected]</a></div>
     </div>
     <button class="profile-edit-btn" onclick="openModal('edit-profile-modal')">Edit</button>
   </div>
@@ -261,7 +289,7 @@ body::before {
     </div>
   </div>
 
-  <button class="btn-logout" onclick="window.location.href='login.html'">Log Out</button>
+  <button class="btn-logout" onclick="logoutUser()">Log Out</button>
   <button class="btn-danger" onclick="openModal('delete-modal')">Delete Account</button>
   <div class="version">Ruff Society Health · v1.0.0</div>
 
@@ -339,7 +367,7 @@ body::before {
 
 <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--charcoal);color:white;padding:10px 20px;border-radius:20px;font-size:0.82rem;z-index:300;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o => {
@@ -363,10 +391,4 @@ function showToast(msg) {
   setTimeout(() => t.style.opacity = '0', 2500);
 }
 function shareCaregiver() {
-  const url = window.location.origin + '/caregiver.html';
-  if(navigator.share) { navigator.share({title:'Caregiver Access',url}); }
-  else { navigator.clipboard.writeText(url); showToast('✓ Caregiver link copied!'); }
-}
-</script>
-</body>
-</html>
+  const url = window.loc

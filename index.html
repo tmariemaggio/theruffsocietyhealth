@@ -4,8 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ruff Society Health</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const _supabase = supabase.createClient('https://otfwryjoxxkctznboksp.supabase.co', 'sb_publishable_6gSohHTrAI_apcSuKyIJFQ_9bhpRni7');
+</script>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#436EA8">
+<link rel="icon" type="image/png" href="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png?v=1761733626">
+<link rel="apple-touch-icon" href="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png?v=1761733626">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Ruff Society Health">
@@ -1878,9 +1884,90 @@ function changeMonth(dir) {
 
 renderCalendar();
 
-// ── ONBOARDING CHECK ──
+
+// ── LOAD REAL USER SESSION ──
+async function loadUserSession() {
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (!session) {
+    // Not logged in - go to login
+    window.location.href = 'login.html';
+    return;
+  }
+  const user = session.user;
+  const meta = user.user_metadata || {};
+  const firstName = meta.first_name || '';
+  const lastName = meta.last_name || '';
+  const fullName = meta.full_name || firstName + ' ' + lastName || 'User';
+  const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'ME';
+
+  // Update avatar initials
+  document.querySelectorAll('.nav-avatar').forEach(el => el.textContent = initials);
+
+  // Update greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greetingEl = document.querySelector('.hero-greeting');
+  if (greetingEl) greetingEl.innerHTML = greeting + ' ' + firstName + ' ✦';
+
+  // Load user's pets from Supabase
+  await loadPets(user.id);
+  // Load caregiver logs
+  loadCaregiverLogs();
+}
+
+// ── LOAD PETS ──
+async function loadPets(userId) {
+  const { data: pets, error } = await _supabase
+    .from('pets')
+    .select('*')
+    .eq('user_id', userId);
+  
+  if (error || !pets || pets.length === 0) {
+    // No pets yet - show empty state
+    document.querySelector('.hero-greeting') && null;
+    return;
+  }
+
+  // Update pet selector with real pets
+  const selector = document.getElementById('pet-selector');
+  if (selector) {
+    // Clear existing demo pets
+    const addChip = selector.querySelector('.pet-chip-add');
+    selector.innerHTML = '';
+    pets.forEach((pet, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'pet-chip' + (i === 0 ? ' active' : '');
+      chip.setAttribute('data-pet', i);
+      chip.onclick = () => selectPet(i);
+      chip.innerHTML = `<div class="pet-chip-avatar">${pet.emoji || '🐕'}</div><span class="pet-chip-name">${pet.name}</span>`;
+      selector.appendChild(chip);
+    });
+    if (addChip) selector.appendChild(addChip);
+    
+    // Update pet name in profile if on pets page
+    const petNameEl = document.querySelector('.pet-name-large');
+    if (petNameEl && pets[0]) petNameEl.textContent = pets[0].name;
+  }
+}
+
+// ── SAVE WALK TO SUPABASE ──
+async function saveWalkToSupabase(seconds) {
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (!session) return;
+  await _supabase.from('walks').insert({
+    user_id: session.user.id,
+    duration_seconds: seconds,
+    duration_minutes: Math.floor(seconds/60),
+    date: new Date().toISOString(),
+    coords_count: walkCoords.length
+  });
+}
+
+// ── ONBOARDING CHECK & SESSION LOAD ──
 if (!localStorage.getItem('onboarding_done')) {
   window.location.href = 'onboarding.html';
+} else {
+  loadUserSession();
 }
 
 // ── DOCUMENT ATTACH (per vaccine row) ──
@@ -1966,6 +2053,11 @@ function loadCaregiverLogs() {
 loadCaregiverLogs();
 
 // ── CAREGIVER SHARE ──
+async function logoutUser() {
+  await _supabase.auth.signOut();
+  localStorage.removeItem('onboarding_done');
+  window.location.href = 'login.html';
+}
 function shareCaregiver() {
   const url = window.location.origin + '/caregiver.html';
   if (navigator.share) {
@@ -1993,8 +2085,9 @@ function saveWalk() {
     coords: walkCoords.length
   });
   DB.save('walks', walks);
+  saveWalkToSupabase(timerSeconds);
   closeModal('walk-modal');
-  alert('Walk saved! ' + Math.floor(timerSeconds/60) + ' minutes logged.');
+  showToastMsg('✓ Walk saved! ' + Math.floor(timerSeconds/60) + ' min logged.');
 }
 
 // ── PWA INSTALL PROMPT ──

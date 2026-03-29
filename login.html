@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ruff Society Health — Welcome</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const _supabase = supabase.createClient('https://otfwryjoxxkctznboksp.supabase.co', 'sb_publishable_6gSohHTrAI_apcSuKyIJFQ_9bhpRni7');
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -415,6 +419,13 @@
 </div>
 
 <script>
+
+// Check if already logged in
+(async () => {
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (session) goToApp();
+})();
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -452,7 +463,7 @@ function clearErr(id) {
   if (inp) inp.classList.remove('error');
 }
 function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
-function handleLogin() {
+async function handleLogin() {
   clearErr('login-email-err'); clearErr('login-pass-err');
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
@@ -461,7 +472,16 @@ function handleLogin() {
   if (!pass) { showErr('login-pass-err'); valid = false; }
   if (!valid) return;
   const btn = event.target; btn.textContent = 'Signing in…'; btn.disabled = true;
-  setTimeout(() => goToApp(), 1400);
+  const { data, error } = await _supabase.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    btn.textContent = 'Sign In'; btn.disabled = false;
+    showErr('login-email-err', 'Invalid email or password');
+    return;
+  }
+  if (document.getElementById('remember-me').checked) {
+    localStorage.setItem('rsh_remember', email);
+  }
+  goToApp();
 }
 function handleSignup() {
   ['signup-first-err','signup-last-err','signup-email-err','signup-pass-err','signup-confirm-err'].forEach(clearErr);
