@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Ruff Society Health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+<!-- Leaflet for GPS map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --cerulean: #2C7BE5;
+  --cerulean-light: #EBF3FD;
+  --cerulean-dark: #1A5FC4;
+  --sand: #F5F0EB;
+  --bark: #3D2B1F;
+  --moss: #4A7C59;
+  --terracotta: #C0614A;
+  --cream: #FDFAF6;
+  --white: #FFFFFF;
+  --gray-100: #F8F8F6;
+  --gray-200: #EFEFEC;
+  --gray-400: #A8A49E;
+  --gray-600: #6B665E;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--sand); color: var(--bark); overscroll-behavior: none; }
+body { display: flex; flex-direction: column; max-width: 430px; margin: 0 auto; position: relative; background: var(--cream); }
+
+/* ─── AUTH SCREEN ─── */
+#auth-screen {
+  position: fixed; inset: 0; z-index: 1000; background: var(--cream);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 32px 24px; gap: 24px;
+}
+#auth-screen .logo-wrap { text-align: center; margin-bottom: 8px; }
+#auth-screen img.logo { width: 180px; margin-bottom: 12px; }
+#auth-screen h1 { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--bark); }
+#auth-screen p { color: var(--gray-600); font-size: 14px; margin-top: 4px; }
+.auth-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.auth-form input {
+  width: 100%; padding: 14px 16px; border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm); font-size: 16px; font-family: inherit;
+  background: var(--white); color: var(--bark); outline: none; transition: border-color .2s;
+}
+.auth-form input:focus { border-color: var(--cerulean); }
+.btn-primary {
+  width: 100%; padding: 14px; background: var(--cerulean); color: white;
+  border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: background .2s;
+}
+.btn-primary:hover { background: var(--cerulean-dark); }
+.btn-link { background: none; border: none; color: var(--cerulean); font-size: 14px; cursor: pointer; font-family: inherit; }
+.auth-error { color: var(--terracotta); font-size: 13px; text-align: center; min-height: 18px; }
+
+/* ─── APP SHELL ─── */
+#app { display: none; flex-direction: column; height: 100dvh; }
+#app.visible { display: flex; }
+
+/* ─── HEADER ─── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 12px; background: var(--cream);
+  border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 50;
+}
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.header-logo img { height: 28px; }
+.header-logo span { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--bark); }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+#avatar-btn {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--cerulean-light);
+  border: 2px solid var(--cerulean); cursor: pointer; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+  color: var(--cerulean); font-size: 14px; flex-shrink: 0;
+}
+#avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ─── MAIN CONTENT ─── */
+main { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+/* ─── TABS ─── */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ─── NAV ─── */
+nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px; background: var(--cream);
+  border-top: 1px solid var(--gray-200); display: flex;
+  box-shadow: 0 -4px 16px rgba(0,0,0,.06); z-index: 100;
+}
+nav button {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; padding: 10px 4px;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  font-size: 10px; color: var(--gray-400); font-weight: 500; transition: color .2s;
+}
+nav button.active { color: var(--cerulean); }
+nav button .nav-icon { font-size: 22px; }
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--white); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm); margin: 12px 16px; overflow: hidden;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 16px 0;
+}
+.card-title { font-weight: 600; font-size: 15px; }
+.card-body { padding: 16px; }
+.btn-icon {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--cerulean-light);
+  border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--cerulean); font-weight: 700; transition: background .2s;
+}
+.btn-icon:hover { background: var(--cerulean); color: white; }
+
+/* ─── HOME TAB ─── */
+.greeting-section { padding: 20px 16px 8px; }
+.greeting-section h2 { font-family: 'Playfair Display', serif; font-size: 24px; }
+.greeting-section .date { color: var(--gray-400); font-size: 13px; margin-top: 2px; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px 4px; }
+.stat-card {
+  background: var(--white); border-radius: var(--radius-sm); padding: 14px;
+  box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 4px;
+}
+.stat-card .stat-icon { font-size: 20px; }
+.stat-card .stat-val { font-size: 20px; font-weight: 700; color: var(--bark); }
+.stat-card .stat-label { font-size: 11px; color: var(--gray-400); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+.quick-log { display: flex; gap: 8px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+.quick-log button {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 12px 16px; background: var(--white); border: none;
+  border-radius: var(--radius-sm); font-family: inherit; font-size: 11px;
+  font-weight: 600; color: var(--gray-600); cursor: pointer; box-shadow: var(--shadow-sm);
+  transition: all .2s;
+}
+.quick-log button:hover { background: var(--cerulean); color: white; }
+.quick-log button .ql-icon { font-size: 24px; }
+
+/* ─── PETS TAB ─── */
+.pet-selector { display: flex; gap: 10px; padding: 16px 16px 0; overflow-x: auto; scrollbar-width: none; }
+.pet-chip {
+  flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 24px; background: var(--gray-200);
+  border: none; font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s; color: var(--bark);
+}
+.pet-chip.active { background: var(--cerulean); color: white; }
+.pet-chip .pet-avatar-sm {
+  width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+  background: var(--cerulean-light); display: flex; align-items: center;
+  justify-content: center; font-size: 14px; overflow: hidden; flex-shrink: 0;
+}
+.pet-chip .pet-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+.pet-detail-card { margin: 12px 16px; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+.pet-hero {
+  position: relative; height: 180px; background: linear-gradient(135deg, var(--cerulean-light), var(--sand));
+  display: flex; align-items: center; justify-content: center;
+}
+.pet-hero-photo { width: 100%; height: 100%; object-fit: cover; }
+.pet-hero-placeholder { font-size: 64px; }
+.pet-photo-upload-btn {
+  position: absolute; bottom: 10px; right: 10px;
+  background: rgba(0,0,0,.45); color: white; border: none; border-radius: 20px;
+  padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.pet-info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 16px; gap: 12px; }
+.pet-info-item { display: flex; flex-direction: column; gap: 2px; }
+.pet-info-label { font-size: 10px; color: var(--gray-400); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+.pet-info-value { font-size: 15px; font-weight: 600; }
+.pet-sub-tabs { display: flex; border-bottom: 1px solid var(--gray-200); }
+.pet-sub-tab {
+  flex: 1; padding: 12px; text-align: center; font-size: 13px; font-weight: 600;
+  color: var(--gray-400); background: none; border: none; cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all .2s;
+}
+.pet-sub-tab.active { color: var(--cerulean); border-bottom-color: var(--cerulean); }
+.pet-sub-content { display: none; padding: 16px; }
+.pet-sub-content.active { display: block; }
+
+/* ─── VACCINE ROWS ─── */
+.vaccine-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--gray-100);
+}
+.vaccine-row:last-child { border-bottom: none; }
+.vaccine-name { font-weight: 600; font-size: 14px; }
+.vaccine-date { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+.badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.badge.current { background: #E8F5E9; color: var(--moss); }
+.badge.due { background: #FFF8E1; color: #B8860B; }
+.badge.overdue { background: #FFEBEE; color: var(--terracotta); }
+
+/* ─── WALKS TAB ─── */
+.walk-tracker-card { margin: 12px 16px; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+#walk-map { width: 100%; height: 280px; background: var(--gray-100); display: none; }
+#walk-map.visible { display: block; }
+.walk-map-placeholder {
+  height: 160px; background: linear-gradient(135deg, #E8F4F8, #D4EAF7);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; color: var(--gray-400); font-size: 13px;
+}
+.walk-map-placeholder .map-icon { font-size: 40px; }
+.walk-controls { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.walk-timer { text-align: center; font-size: 42px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 2px; color: var(--bark); }
+.walk-stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.walk-stat { text-align: center; background: var(--gray-100); border-radius: var(--radius-sm); padding: 10px; }
+.walk-stat .ws-val { font-size: 18px; font-weight: 700; }
+.walk-stat .ws-label { font-size: 11px; color: var(--gray-400); text-transform: uppercase; }
+.walk-btns { display: flex; gap: 10px; justify-content: center; }
+.walk-btn {
+  flex: 1; padding: 14px; border: none; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s;
+}
+.walk-btn.start { background: var(--moss); color: white; }
+.walk-btn.pause { background: var(--gray-200); color: var(--bark); }
+.walk-btn.stop { background: var(--terracotta); color: white; }
+.walk-btn:disabled { opacity: .4; cursor: not-allowed; }
+.walk-history-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--gray-100);
+}
+.walk-history-row:last-child { border-bottom: none; }
+.wh-left .wh-date { font-weight: 600; font-size: 14px; }
+.wh-left .wh-meta { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+.wh-right { font-weight: 700; color: var(--cerulean); }
+
+/* ─── PROFILE MODAL ─── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.5);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  width: 100%; max-width: 430px; background: var(--cream);
+  border-radius: 24px 24px 0 0; padding: 24px; max-height: 90dvh;
+  overflow-y: auto; animation: slideUp .3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle { width: 40px; height: 4px; background: var(--gray-200); border-radius: 2px; margin: 0 auto 20px; }
+.modal-title { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 20px; }
+.modal-form { display: flex; flex-direction: column; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: .5px; }
+.form-input {
+  padding: 12px 14px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm);
+  font-size: 15px; font-family: inherit; background: var(--white); color: var(--bark);
+  outline: none; transition: border-color .2s;
+}
+.form-input:focus { border-color: var(--cerulean); }
+select.form-input { cursor: pointer; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.photo-upload-area {
+  border: 2px dashed var(--gray-200); border-radius: var(--radius-sm);
+  padding: 24px; text-align: center; cursor: pointer; transition: all .2s;
+  background: var(--gray-100); position: relative;
+}
+.photo-upload-area:hover { border-color: var(--cerulean); background: var(--cerulean-light); }
+.photo-upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.photo-upload-area .pu-preview {
+  width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+  margin: 0 auto 8px; display: block;
+}
+.photo-upload-area .pu-icon { font-size: 32px; margin-bottom: 8px; }
+.photo-upload-area p { font-size: 13px; color: var(--gray-400); }
+.modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+.btn-secondary {
+  flex: 1; padding: 14px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  background: var(--white); color: var(--bark); transition: all .2s;
+}
+.btn-secondary:hover { border-color: var(--bark); }
+.modal-actions .btn-primary { flex: 1; }
+
+/* ─── EMPTY STATE ─── */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--gray-400); }
+.empty-state .es-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* ─── LOADING ─── */
+.loading-spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 2px solid var(--gray-200); border-top-color: var(--cerulean);
+  border-radius: 50%; animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.section-loading { display: flex; justify-content: center; padding: 32px; }
+
+/* ─── TOAST ─── */
+#toast {
+  position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--bark); color: white; padding: 10px 20px; border-radius: 24px;
+  font-size: 13px; font-weight: 500; z-index: 500; opacity: 0;
+  transition: all .3s; pointer-events: none; white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ─── ADD PET BANNER ─── */
+.add-pet-banner {
+  margin: 16px; padding: 24px; background: linear-gradient(135deg, var(--cerulean), var(--cerulean-dark));
+  border-radius: var(--radius); color: white; text-align: center;
+}
+.add-pet-banner h3 { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 6px; }
+.add-pet-banner p { font-size: 13px; opacity: .85; margin-bottom: 16px; }
+.add-pet-banner button {
+  background: white; color: var(--cerulean); border: none; border-radius: var(--radius-sm);
+  padding: 12px 24px; font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+
+/* ─── WALK MAP ROUTE ─── */
+.leaflet-container { font-family: 'DM Sans', sans-serif !important; }
+
+/* ─── SECTIONS ─── */
+.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray-400); padding: 16px 16px 8px; }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="logo-wrap">
+    <img class="logo" src="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png" alt="Ruff Society Health" onerror="this.style.display='none'"/>
+    <h1>Ruff Society <em>Health</em></h1>
+    <p>Track walks, vaccines, and more for your pup.</p>
+  </div>
+  <div class="auth-form" id="auth-form">
+    <div id="auth-name-wrap" style="display:none">
+      <input type="text" id="auth-name" placeholder="Your name" class="form-input" style="width:100%;padding:14px 16px;border:1.5px solid var(--gray-200);border-radius:10px;font-size:16px;font-family:inherit;"/>
+    </div>
+    <input type="email" id="auth-email" placeholder="Email address" autocomplete="email"/>
+    <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password"/>
+    <p class="auth-error" id="auth-error"></p>
+    <button class="btn-primary" id="auth-submit">Sign In</button>
+    <button class="btn-link" id="auth-toggle">Don't have an account? Sign up</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-logo">
+      <img src="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png" height="28" alt="Ruff Society" onerror="this.style.display='none'"/>
+      <span>Health</span>
+    </div>
+    <div class="header-actions">
+      <button id="avatar-btn" title="Profile" onclick="openProfileModal()">
+        <span id="avatar-initials"></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOME TAB -->
+    <div class="tab-content active" id="tab-home">
+      <div class="greeting-section">
+        <h2 id="greeting-text">Good morning ✦</h2>
+        <div class="date" id="greeting-date"></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">🚶</div><div class="stat-val" id="stat-walks">0</div><div class="stat-label">This Week</div></div>
+        <div class="stat-card"><div class="stat-icon">⏱</div><div class="stat-val" id="stat-time">0h</div><div class="stat-label">Walk Time</div></div>
+        <div class="stat-card"><div class="stat-icon">🐾</div><div class="stat-val" id="stat-pets">0</div><div class="stat-label">Pets</div></div>
+        <div class="stat-card"><div class="stat-icon">💉</div><div class="stat-val" id="stat-vaccines">—</div><div class="stat-label">Vaccines</div></div>
+      </div>
+      <div class="section-title">Quick Log</div>
+      <div class="quick-log">
+        <button onclick="switchTab('walks')"><span class="ql-icon">🦮</span>Walk</button>
+        <button onclick="openModal('add-pet-modal')"><span class="ql-icon">🐾</span>Pet</button>
+        <button onclick="openModal('add-vaccine-modal')"><span class="ql-icon">💉</span>Vaccine</button>
+      </div>
+      <div class="section-title">My Pets</div>
+      <div id="home-pets-list"></div>
+    </div>
+
+    <!-- PETS TAB -->
+    <div class="tab-content" id="tab-pets">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;">
+        <span class="card-title">My Pets</span>
+        <button class="btn-icon" onclick="openModal('add-pet-modal')">+</button>
+      </div>
+      <div class="pet-selector" id="pet-selector"></div>
+      <div id="pet-detail-area"></div>
+    </div>
+
+    <!-- WALKS TAB -->
+    <div class="tab-content" id="tab-walks">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;">
+        <span class="card-title">Walks</span>
+      </div>
+      <div class="walk-tracker-card" style="margin:12px 16px;">
+        <div id="walk-map-placeholder" class="walk-map-placeholder">
+          <div class="map-icon">🗺️</div>
+          <p>Start a walk to see your route</p>
+        </div>
+        <div id="walk-map"></div>
+        <div class="walk-controls">
+          <div class="walk-timer" id="walk-timer">00:00</div>
+          <div class="walk-stats-row">
+            <div class="walk-stat"><div class="ws-val" id="walk-distance">0.00</div><div class="ws-label">Miles</div></div>
+            <div class="walk-stat"><div class="ws-val" id="walk-pace">—</div><div class="ws-label">Avg Pace</div></div>
+          </div>
+          <div class="walk-btns">
+            <button class="walk-btn start" id="walk-start-btn" onclick="startWalk()">▶ Start</button>
+            <button class="walk-btn pause" id="walk-pause-btn" onclick="pauseWalk()" disabled>⏸ Pause</button>
+            <button class="walk-btn stop" id="walk-stop-btn" onclick="stopWalk()" disabled>⏹ Stop</button>
+          </div>
+          <div class="form-group" style="display:none" id="walk-pet-select-wrap">
+            <label class="form-label">Pet</label>
+            <select class="form-input" id="walk-pet-id"></select>
+          </div>
+          <div class="form-group" style="display:none" id="walk-notes-wrap">
+            <label class="form-label">Notes</label>
+            <input class="form-input" id="walk-notes" placeholder="How did the walk go?"/>
+          </div>
+          <button class="btn-primary" id="walk-save-btn" style="display:none" onclick="saveWalk()">Save Walk</button>
+        </div>
+      </div>
+      <div class="section-title">Walk History</div>
+      <div class="card" id="walk-history-card">
+        <div class="card-body" id="walk-history-list">
+          <div class="section-loading"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR TAB -->
+    <div class="tab-content" id="tab-calendar">
+      <div class="card" style="margin:16px;">
+        <div class="card-body">
+          <div class="empty-state"><div class="es-icon">📅</div><p>Calendar coming soon!</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACTS TAB -->
+    <div class="tab-content" id="tab-contacts">
+      <div class="card" style="margin:16px;">
+        <div class="card-body">
+          <div class="empty-state"><div class="es-icon">📞</div><p>Contacts coming soon!</p></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav>
+    <button class="active" onclick="switchTab('home')" id="nav-home"><span class="nav-icon">🏠</span>Home</button>
+    <button onclick="switchTab('pets')" id="nav-pets"><span class="nav-icon">🐾</span>Pets</button>
+    <button onclick="switchTab('walks')" id="nav-walks"><span class="nav-icon">🦮</span>Walks</button>
+    <button onclick="switchTab('calendar')" id="nav-calendar"><span class="nav-icon">📅</span>Calendar</button>
+    <button onclick="switchTab('contacts')" id="nav-contacts"><span class="nav-icon">📞</span>Contacts</button>
+  </nav>
+</div>
+
+<!-- ─── MODALS ─── -->
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Your Profile</div>
+    <div class="modal-form">
+      <div class="photo-upload-area" id="profile-photo-area">
+        <input type="file" accept="image/*" id="profile-photo-input" onchange="previewProfilePhoto(this)"/>
+        <img src="" id="profile-photo-preview" class="pu-preview" style="display:none"/>
+        <div class="pu-icon" id="profile-photo-icon">👤</div>
+        <p>Tap to upload profile photo</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" id="profile-name" placeholder="Your name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="profile-email" disabled style="opacity:.6"/>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('profile-modal')">Cancel</button>
+        <button class="btn-primary" onclick="saveProfile()">Save</button>
+      </div>
+      <button class="btn-secondary" onclick="signOut()" style="width:100%;margin-top:4px;color:var(--terracotta);border-color:var(--terracotta)">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PET MODAL -->
+<div class="modal-overlay" id="add-pet-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add a Pet 🐾</div>
+    <div class="modal-form">
+      <div class="photo-upload-area" id="pet-photo-area">
+        <input type="file" accept="image/*" id="pet-photo-input" onchange="previewPetPhoto(this)"/>
+        <img src="" id="pet-photo-preview" class="pu-preview" style="display:none"/>
+        <div class="pu-icon" id="pet-photo-icon">📷</div>
+        <p>Tap to add pet photo</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pet Name *</label>
+        <input class="form-input" id="pet-name" placeholder="e.g. Roux"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Species</label>
+          <select class="form-input" id="pet-species">
+            <option>Dog</option><option>Cat</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sex</label>
+          <select class="form-input" id="pet-sex">
+            <option value="">—</option><option>Male</option><option>Female</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Breed</label>
+        <input class="form-input" id="pet-breed" placeholder="e.g. Golden Retriever"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Birthday</label>
+          <input class="form-input" type="date" id="pet-birthday"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (lbs)</label>
+          <input class="form-input" type="number" id="pet-weight" placeholder="0"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Altered?</label>
+          <select class="form-input" id="pet-neutered">
+            <option value="false">Intact</option><option value="true">Neutered/Spayed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Microchip #</label>
+          <input class="form-input" id="pet-microchip" placeholder="Optional"/>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('add-pet-modal')">Cancel</button>
+        <button class="btn-primary" id="pet-save-btn" onclick="savePet()">Add Pet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD VACCINE MODAL -->
+<div class="modal-overlay" id="add-vaccine-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Vaccine 💉</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label class="form-label">Pet *</label>
+        <select class="form-input" id="vaccine-pet-id"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vaccine Name *</label>
+        <input class="form-input" id="vaccine-name" placeholder="e.g. Rabies, DHPP, Bordetella"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date Given</label>
+          <input class="form-input" type="date" id="vaccine-given"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expires / Due</label>
+          <input class="form-input" type="date" id="vaccine-expiry"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input class="form-input" id="vaccine-notes" placeholder="Optional notes"/>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('add-vaccine-modal')">Cancel</button>
+        <button class="btn-primary" id="vaccine-save-btn" onclick="saveVaccine()">Save Vaccine</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+// SUPABASE INIT
+// ════════════════════════════════════════════
+const { createClient } = supabase;
+const SUPABASE_URL = 'https://otfwryjoxxkctznboksp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6gSohHTrAI_apcSuKyIJFQ_9bhpRni7';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════
+// APP STATE
+// ════════════════════════════════════════════
+let currentUser = null;
+let userProfile = null;
+let pets = [];
+let selectedPetId = null;
+let walkHistory = [];
+
+// Walk state
+let walkActive = false;
+let walkPaused = false;
+let walkStartTime = null;
+let walkElapsed = 0;
+let walkTimerInterval = null;
+let walkCoords = [];
+let watchId = null;
+let leafletMap = null;
+let walkPolyline = null;
+let walkStartMarker = null;
+let walkCurrentMarker = null;
+
+// ════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════
+let authMode = 'signin';
+document.getElementById('auth-toggle').onclick = () => {
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  document.getElementById('auth-submit').textContent = authMode === 'signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-toggle').textContent = authMode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in';
+  document.getElementById('auth-name-wrap').style.display = authMode === 'signup' ? 'block' : 'none';
+};
+
+document.getElementById('auth-submit').onclick = async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
+
+  if (authMode === 'signup') {
+    const name = document.getElementById('auth-name').value.trim();
+    const { error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    if (error) { errEl.textContent = error.message; return; }
+    errEl.style.color = 'var(--moss)';
+    errEl.textContent = 'Check your email to confirm your account!';
+  } else {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { errEl.textContent = error.message; }
+  }
+};
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    await initApp();
+  } else {
+    currentUser = null;
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app').classList.remove('visible');
+  }
+});
+
+async function signOut() {
+  await sb.auth.signOut();
+  closeModal('profile-modal');
+}
+
+// ════════════════════════════════════════════
+// APP INIT
+// ════════════════════════════════════════════
+async function initApp() {
+  updateGreeting();
+  await Promise.all([loadProfile(), loadPets()]);
+  await loadWalkHistory();
+  updateHomeStats();
+}
+
+function updateGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning ✦' : h < 17 ? 'Good afternoon ✦' : 'Good evening ✦';
+  document.getElementById('greeting-text').textContent = greet;
+  document.getElementById('greeting-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// ════════════════════════════════════════════
+// PROFILE
+// ════════════════════════════════════════════
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+  userProfile = data;
+  if (!userProfile) {
+    // create profile row
+    await sb.from('profiles').insert({ id: currentUser.id, full_name: currentUser.user_metadata?.full_name || '' });
+    userProfile = { id: currentUser.id, full_name: currentUser.user_metadata?.full_name || '' };
+  }
+  updateAvatarBtn();
+}
+
+function updateAvatarBtn() {
+  const btn = document.getElementById('avatar-btn');
+  const initialsEl = document.getElementById('avatar-initials');
+  if (userProfile?.avatar_url) {
+    btn.innerHTML = `<img src="${userProfile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+  } else {
+    const name = userProfile?.full_name || currentUser?.email || 'U';
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    btn.innerHTML = `<span id="avatar-initials" style="font-weight:700;color:var(--cerulean);font-size:14px">${initials}</span>`;
+  }
+}
+
+function openProfileModal() {
+  document.getElementById('profile-name').value = userProfile?.full_name || '';
+  document.getElementById('profile-email').value = currentUser?.email || '';
+  if (userProfile?.avatar_url) {
+    document.getElementById('profile-photo-preview').src = userProfile.avatar_url;
+    document.getElementById('profile-photo-preview').style.display = 'block';
+    document.getElementById('profile-photo-icon').style.display = 'none';
+  }
+  openModal('profile-modal');
+}
+
+function previewProfilePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('profile-photo-preview').src = e.target.result;
+    document.getElementById('profile-photo-preview').style.display = 'block';
+    document.getElementById('profile-photo-icon').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfile() {
+  const name = document.getElementById('profile-name').value.trim();
+  const file = document.getElementById('profile-photo-input').files[0];
+  let avatarUrl = userProfile?.avatar_url || null;
+
+  if (file) {
+    const ext = file.name.split('.').pop();
+    const path = `${currentUser.id}/avatar.${ext}`;
+    const { error: upErr } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
+    if (!upErr) {
+      const { data: urlData } = sb.storage.from('avatars').getPublicUrl(path);
+      avatarUrl = urlData.publicUrl + '?t=' + Date.now();
+    }
+  }
+
+  await sb.from('profiles').upsert({ id: currentUser.id, full_name: name, avatar_url: avatarUrl, updated_at: new Date().toISOString() });
+  userProfile = { ...userProfile, full_name: name, avatar_url: avatarUrl };
+  updateAvatarBtn();
+  closeModal('profile-modal');
+  showToast('Profile saved ✓');
+}
+
+// ════════════════════════════════════════════
+// PETS
+// ════════════════════════════════════════════
+async function loadPets() {
+  const { data } = await sb.from('pets').select('*').eq('user_id', currentUser.id).order('created_at');
+  pets = data || [];
+  renderPetSelector();
+  renderHomePets();
+  populatePetDropdowns();
+  if (pets.length > 0 && !selectedPetId) {
+    selectPet(pets[0].id);
+  } else if (pets.length === 0) {
+    renderNoPets();
+  }
+}
+
+function renderPetSelector() {
+  const sel = document.getElementById('pet-selector');
+  if (pets.length === 0) { sel.innerHTML = ''; return; }
+  sel.innerHTML = pets.map(p => `
+    <button class="pet-chip ${p.id === selectedPetId ? 'active' : ''}" onclick="selectPet('${p.id}')">
+      <span class="pet-avatar-sm">${p.photo_url ? `<img src="${p.photo_url}" alt="${p.name}"/>` : petEmoji(p)}</span>
+      ${p.name}
+    </button>
+  `).join('');
+}
+
+function renderNoPets() {
+  document.getElementById('pet-detail-area').innerHTML = `
+    <div class="add-pet-banner">
+      <h3>🐾 Add Your First Pet</h3>
+      <p>Track walks, vaccines, medications and more.</p>
+      <button onclick="openModal('add-pet-modal')">+ Add Your First Pet</button>
+    </div>`;
+}
+
+function renderHomePets() {
+  const el = document.getElementById('home-pets-list');
+  if (pets.length === 0) {
+    el.innerHTML = `<div class="add-pet-banner" style="margin:0 16px 16px">
+      <h3>🐾 Welcome to Ruff Society Health!</h3>
+      <p>Start by adding your first pet.</p>
+      <button onclick="openModal('add-pet-modal')">+ Add Your First Pet</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = pets.map(p => `
+    <div class="card" style="margin:8px 16px;padding:14px 16px;display:flex;align-items:center;gap:14px" onclick="switchTab('pets');selectPet('${p.id}')">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--cerulean-light);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0">
+        ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover"/>` : petEmoji(p)}
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:16px">${p.name}</div>
+        <div style="font-size:13px;color:var(--gray-400)">${p.breed || p.species || ''} ${p.birthday ? '· ' + petAge(p.birthday) : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function petEmoji(p) {
+  return p.species === 'Cat' ? '🐱' : '🐕';
+}
+
+function petAge(birthday) {
+  if (!birthday) return '';
+  const diff = Date.now() - new Date(birthday).getTime();
+  const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  if (years === 0) {
+    const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
+    return `${months}mo`;
+  }
+  return `${years}yr`;
+}
+
+async function selectPet(petId) {
+  selectedPetId = petId;
+  renderPetSelector();
+  await renderPetDetail(petId);
+}
+
+async function renderPetDetail(petId) {
+  const pet = pets.find(p => p.id === petId);
+  if (!pet) return;
+  const area = document.getElementById('pet-detail-area');
+  area.innerHTML = `
+    <div class="pet-detail-card">
+      <div class="pet-hero">
+        ${pet.photo_url
+          ? `<img class="pet-hero-photo" src="${pet.photo_url}" alt="${pet.name}"/>`
+          : `<div class="pet-hero-placeholder">${petEmoji(pet)}</div>`}
+        <button class="pet-photo-upload-btn" onclick="triggerPetPhotoUpload('${pet.id}')">📷 Update Photo</button>
+        <input type="file" accept="image/*" id="pet-upload-${pet.id}" style="display:none" onchange="uploadPetPhoto(this,'${pet.id}')"/>
+      </div>
+      <div style="padding:16px 16px 0">
+        <div style="font-family:'Playfair Display',serif;font-size:24px">${pet.name}</div>
+        <div style="font-size:13px;color:var(--gray-400);margin-top:2px">${pet.breed || ''} ${pet.species !== 'Dog' ? '· ' + pet.species : ''}</div>
+      </div>
+      <div class="pet-info-row">
+        <div class="pet-info-item"><div class="pet-info-label">Age</div><div class="pet-info-value">${pet.birthday ? petAge(pet.birthday) : '—'}</div></div>
+        <div class="pet-info-item"><div class="pet-info-label">Weight</div><div class="pet-info-value">${pet.weight_lbs ? pet.weight_lbs + ' lbs' : '—'}</div></div>
+        <div class="pet-info-item"><div class="pet-info-label">Sex</div><div class="pet-info-value">${pet.sex || '—'}</div></div>
+      </div>
+      <div class="pet-sub-tabs">
+        <button class="pet-sub-tab active" onclick="showPetTab(this,'pet-health-${petId}')">Health</button>
+        <button class="pet-sub-tab" onclick="showPetTab(this,'pet-vaccines-${petId}')">Vaccines</button>
+        <button class="pet-sub-tab" onclick="showPetTab(this,'pet-info-${petId}')">Info</button>
+      </div>
+      <div class="pet-sub-content active" id="pet-health-${petId}">
+        <div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px 0">Health tracking coming soon</div>
+      </div>
+      <div class="pet-sub-content" id="pet-vaccines-${petId}">
+        <div id="vaccines-list-${petId}"><div class="section-loading"><div class="loading-spinner"></div></div></div>
+        <button class="btn-primary" style="width:100%;margin-top:12px" onclick="openVaccineModal('${petId}')">+ Add Vaccine</button>
+      </div>
+      <div class="pet-sub-content" id="pet-info-${petId}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="pet-info-item"><div class="pet-info-label">Birthday</div><div class="pet-info-value">${pet.birthday ? new Date(pet.birthday+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</div></div>
+          <div class="pet-info-item"><div class="pet-info-label">Microchip</div><div class="pet-info-value" style="font-size:12px">${pet.microchip || '—'}</div></div>
+          <div class="pet-info-item"><div class="pet-info-label">Altered</div><div class="pet-info-value">${pet.neutered ? 'Yes' : 'No'}</div></div>
+        </div>
+      </div>
+    </div>`;
+  await loadVaccines(petId);
+}
+
+function showPetTab(btn, contentId) {
+  const card = btn.closest('.pet-detail-card');
+  card.querySelectorAll('.pet-sub-tab').forEach(b => b.classList.remove('active'));
+  card.querySelectorAll('.pet-sub-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(contentId).classList.add('active');
+}
+
+function triggerPetPhotoUpload(petId) {
+  document.getElementById(`pet-upload-${petId}`).click();
+}
+
+async function uploadPetPhoto(input, petId) {
+  const file = input.files[0];
+  if (!file) return;
+  showToast('Uploading photo…');
+  const ext = file.name.split('.').pop();
+  const path = `${currentUser.id}/${petId}.${ext}`;
+  const { error } = await sb.storage.from('pet-photos').upload(path, file, { upsert: true });
+  if (error) { showToast('Upload failed'); return; }
+  const { data: urlData } = sb.storage.from('pet-photos').getPublicUrl(path);
+  const photoUrl = urlData.publicUrl + '?t=' + Date.now();
+  await sb.from('pets').update({ photo_url: photoUrl }).eq('id', petId);
+  const pet = pets.find(p => p.id === petId);
+  if (pet) pet.photo_url = photoUrl;
+  await renderPetDetail(petId);
+  renderPetSelector();
+  renderHomePets();
+  showToast('Photo updated ✓');
+}
+
+function previewPetPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('pet-photo-preview').src = e.target.result;
+    document.getElementById('pet-photo-preview').style.display = 'block';
+    document.getElementById('pet-photo-icon').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function savePet() {
+  const name = document.getElementById('pet-name').value.trim();
+  if (!name) { showToast('Pet name is required'); return; }
+
+  const btn = document.getElementById('pet-save-btn');
+  btn.textContent = 'Adding…'; btn.disabled = true;
+
+  const petData = {
+    user_id: currentUser.id,
+    name,
+    species: document.getElementById('pet-species').value,
+    breed: document.getElementById('pet-breed').value.trim() || null,
+    birthday: document.getElementById('pet-birthday').value || null,
+    weight_lbs: parseFloat(document.getElementById('pet-weight').value) || null,
+    sex: document.getElementById('pet-sex').value || null,
+    neutered: document.getElementById('pet-neutered').value === 'true',
+    microchip: document.getElementById('pet-microchip').value.trim() || null,
+  };
+
+  const { data, error } = await sb.from('pets').insert(petData).select().single();
+  if (error) { showToast('Error: ' + error.message); btn.textContent = 'Add Pet'; btn.disabled = false; return; }
+
+  // Upload photo if chosen
+  const file = document.getElementById('pet-photo-input').files[0];
+  if (file && data) {
+    const ext = file.name.split('.').pop();
+    const path = `${currentUser.id}/${data.id}.${ext}`;
+    await sb.storage.from('pet-photos').upload(path, file, { upsert: true });
+    const { data: urlData } = sb.storage.from('pet-photos').getPublicUrl(path);
+    const photoUrl = urlData.publicUrl + '?t=' + Date.now();
+    await sb.from('pets').update({ photo_url: photoUrl }).eq('id', data.id);
+    data.photo_url = photoUrl;
+  }
+
+  pets.push(data);
+  selectedPetId = data.id;
+  renderPetSelector();
+  renderHomePets();
+  populatePetDropdowns();
+  await renderPetDetail(data.id);
+  closeModal('add-pet-modal');
+  document.getElementById('pet-name').value = '';
+  document.getElementById('pet-photo-input').value = '';
+  document.getElementById('pet-photo-preview').style.display = 'none';
+  document.getElementById('pet-photo-icon').style.display = 'block';
+  btn.textContent = 'Add Pet'; btn.disabled = false;
+  updateHomeStats();
+  showToast(`${name} added! 🐾`);
+}
+
+function populatePetDropdowns() {
+  const opts = pets.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('vaccine-pet-id').innerHTML = opts || '<option value="">No pets yet</option>';
+  document.getElementById('walk-pet-id').innerHTML = opts || '<option value="">No pets yet</option>';
+  if (selectedPetId) {
+    document.getElementById('vaccine-pet-id').value = selectedPetId;
+    document.getElementById('walk-pet-id').value = selectedPetId;
+  }
+}
+
+// ════════════════════════════════════════════
+// VACCINES
+// ════════════════════════════════════════════
+async function loadVaccines(petId) {
+  const el = document.getElementById(`vaccines-list-${petId}`);
+  if (!el) return;
+  const { data } = await sb.from('vaccines').select('*').eq('pet_id', petId).order('expiry_date');
+  if (!data || data.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:20px 0"><div class="es-icon">💉</div><p>No vaccines recorded yet</p></div>`;
+    return;
+  }
+  el.innerHTML = data.map(v => {
+    const today = new Date();
+    const expiry = v.expiry_date ? new Date(v.expiry_date + 'T00:00:00') : null;
+    let badgeClass = 'current', badgeText = 'Current';
+    if (expiry) {
+      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+      if (daysLeft < 0) { badgeClass = 'overdue'; badgeText = 'Overdue'; }
+      else if (daysLeft <= 30) { badgeClass = 'due'; badgeText = `Due ${expiry.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`; }
+      else { badgeClass = 'current'; badgeText = `Due ${expiry.getFullYear()}`; }
+    }
+    return `<div class="vaccine-row">
+      <div>
+        <div class="vaccine-name">${v.name}</div>
+        <div class="vaccine-date">${v.administered_date ? 'Given ' + new Date(v.administered_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : ''} ${v.notes ? '· ' + v.notes : ''}</div>
+      </div>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+    </div>`;
+  }).join('');
+}
+
+function openVaccineModal(petId) {
+  if (petId) document.getElementById('vaccine-pet-id').value = petId;
+  openModal('add-vaccine-modal');
+}
+
+async function saveVaccine() {
+  const petId = document.getElementById('vaccine-pet-id').value;
+  const name = document.getElementById('vaccine-name').value.trim();
+  if (!name || !petId) { showToast('Pet and vaccine name required'); return; }
+
+  const btn = document.getElementById('vaccine-save-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  const { error } = await sb.from('vaccines').insert({
+    user_id: currentUser.id,
+    pet_id: petId,
+    name,
+    administered_date: document.getElementById('vaccine-given').value || null,
+    expiry_date: document.getElementById('vaccine-expiry').value || null,
+    notes: document.getElementById('vaccine-notes').value.trim() || null,
+    status: 'current',
+  });
+
+  if (error) { showToast('Error: ' + error.message); btn.textContent = 'Save Vaccine'; btn.disabled = false; return; }
+  closeModal('add-vaccine-modal');
+  document.getElementById('vaccine-name').value = '';
+  document.getElementById('vaccine-given').value = '';
+  document.getElementById('vaccine-expiry').value = '';
+  document.getElementById('vaccine-notes').value = '';
+  btn.textContent = 'Save Vaccine'; btn.disabled = false;
+  await loadVaccines(petId);
+  updateHomeStats();
+  showToast('Vaccine saved ✓');
+}
+
+// ════════════════════════════════════════════
+// WALKS + GPS MAP
+// ════════════════════════════════════════════
+async function loadWalkHistory() {
+  const { data } = await sb.from('walks').select('*').eq('user_id', currentUser.id).order('date', { ascending: false }).limit(20);
+  walkHistory = data || [];
+  renderWalkHistory();
+  updateHomeStats();
+}
+
+function renderWalkHistory() {
+  const el = document.getElementById('walk-history-list');
+  if (walkHistory.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="es-icon">🦮</div><p>No walks yet. Start your first walk!</p></div>`;
+    return;
+  }
+  el.innerHTML = walkHistory.map(w => {
+    const date = new Date(w.date);
+    const pet = pets.find(p => p.id === w.pet_id);
+    return `<div class="walk-history-row">
+      <div class="wh-left">
+        <div class="wh-date">${date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</div>
+        <div class="wh-meta">${w.duration_minutes || 0} min${pet ? ' · ' + pet.name : ''}${w.distance_miles ? ' · ' + parseFloat(w.distance_miles).toFixed(2) + ' mi' : ''}${w.notes ? ' · ' + w.notes : ''}</div>
+      </div>
+      <div class="wh-right">${w.duration_minutes || 0}m</div>
+    </div>`;
+  }).join('');
+}
+
+function updateHomeStats() {
+  // This week's walks
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+  const thisWeek = walkHistory.filter(w => new Date(w.date) > weekAgo);
+  document.getElementById('stat-walks').textContent = thisWeek.length;
+  const totalMins = thisWeek.reduce((a, w) => a + (w.duration_minutes || 0), 0);
+  document.getElementById('stat-time').textContent = totalMins >= 60 ? (totalMins/60).toFixed(1) + 'h' : totalMins + 'm';
+  document.getElementById('stat-pets').textContent = pets.length;
+  // Vaccine stat — next due
+  document.getElementById('stat-vaccines').textContent = '✓';
+}
+
+// ── GPS WALK TRACKING ──
+function initMap() {
+  if (leafletMap) return;
+  const mapEl = document.getElementById('walk-map');
+  mapEl.classList.add('visible');
+  document.getElementById('walk-map-placeholder').style.display = 'none';
+  leafletMap = L.map('walk-map', { zoomControl: false, attributionControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(leafletMap);
+  L.control.zoom({ position: 'bottomright' }).addTo(leafletMap);
+}
+
+function startWalk() {
+  if (!navigator.geolocation) { showToast('GPS not supported on this device'); return; }
+  walkActive = true; walkPaused = false;
+  walkStartTime = Date.now() - walkElapsed * 1000;
+  walkCoords = [];
+
+  document.getElementById('walk-start-btn').disabled = true;
+  document.getElementById('walk-pause-btn').disabled = false;
+  document.getElementById('walk-stop-btn').disabled = false;
+
+  initMap();
+
+  walkTimerInterval = setInterval(updateWalkTimer, 1000);
+
+  watchId = navigator.geolocation.watchPosition(pos => {
+    if (walkPaused) return;
+    const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+    if (accuracy > 50) return; // ignore very inaccurate readings
+    walkCoords.push([lat, lng]);
+    updateMapRoute();
+    document.getElementById('walk-distance').textContent = calcDistance().toFixed(2);
+    updatePace();
+    leafletMap.setView([lat, lng], 16);
+  }, err => {
+    console.warn('GPS error:', err);
+    showToast('GPS signal lost — check permissions');
+  }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+
+  document.getElementById('walk-pet-select-wrap').style.display = 'block';
+  document.getElementById('walk-notes-wrap').style.display = 'none';
+  document.getElementById('walk-save-btn').style.display = 'none';
+  if (pets.length > 0 && selectedPetId) document.getElementById('walk-pet-id').value = selectedPetId;
+  showToast('Walk started — GPS tracking active 📍');
+}
+
+function pauseWalk() {
+  if (walkPaused) {
+    walkPaused = false;
+    walkStartTime = Date.now() - walkElapsed * 1000;
+    document.getElementById('walk-pause-btn').textContent = '⏸ Pause';
+    showToast('Walk resumed');
+  } else {
+    walkPaused = true;
+    document.getElementById('walk-pause-btn').textContent = '▶ Resume';
+    showToast('Walk paused');
+  }
+}
+
+function stopWalk() {
+  walkActive = false;
+  clearInterval(walkTimerInterval);
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  document.getElementById('walk-pause-btn').disabled = true;
+  document.getElementById('walk-stop-btn').disabled = true;
+  document.getElementById('walk-start-btn').disabled = false;
+  document.getElementById('walk-notes-wrap').style.display = 'block';
+  document.getElementById('walk-save-btn').style.display = 'block';
+  showToast('Walk stopped — tap Save when ready');
+}
+
+function updateWalkTimer() {
+  if (walkPaused) return;
+  walkElapsed = Math.floor((Date.now() - walkStartTime) / 1000);
+  const m = Math.floor(walkElapsed / 60).toString().padStart(2, '0');
+  const s = (walkElapsed % 60).toString().padStart(2, '0');
+  document.getElementById('walk-timer').textContent = `${m}:${s}`;
+}
+
+function updateMapRoute() {
+  if (!leafletMap || walkCoords.length === 0) return;
+  if (walkPolyline) walkPolyline.remove();
+  walkPolyline = L.polyline(walkCoords, { color: '#2C7BE5', weight: 4, opacity: .85 }).addTo(leafletMap);
+  if (walkCoords.length === 1) {
+    walkStartMarker = L.circleMarker(walkCoords[0], { radius: 8, color: '#4A7C59', fillColor: '#4A7C59', fillOpacity: 1 }).addTo(leafletMap);
+  }
+  if (walkCurrentMarker) walkCurrentMarker.remove();
+  const last = walkCoords[walkCoords.length - 1];
+  walkCurrentMarker = L.circleMarker(last, { radius: 8, color: '#2C7BE5', fillColor: 'white', fillOpacity: 1, weight: 3 }).addTo(leafletMap);
+}
+
+function calcDistance() {
+  if (walkCoords.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < walkCoords.length; i++) {
+    total += haversine(walkCoords[i-1], walkCoords[i]);
+  }
+  return total;
+}
+
+function haversine([lat1, lon1], [lat2, lon2]) {
+  const R = 3958.8; // miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function updatePace() {
+  const dist = calcDistance();
+  if (dist < 0.05 || walkElapsed < 30) { document.getElementById('walk-pace').textContent = '—'; return; }
+  const mins = walkElapsed / 60;
+  const pace = mins / dist;
+  const pm = Math.floor(pace); const ps = Math.round((pace - pm) * 60).toString().padStart(2,'0');
+  document.getElementById('walk-pace').textContent = `${pm}:${ps}`;
+}
+
+async function saveWalk() {
+  const petId = document.getElementById('walk-pet-id').value || null;
+  const notes = document.getElementById('walk-notes').value.trim() || null;
+  const durationMins = Math.round(walkElapsed / 60) || 1;
+  const distanceMiles = parseFloat(calcDistance().toFixed(4));
+
+  const { error } = await sb.from('walks').insert({
+    user_id: currentUser.id,
+    pet_id: petId || null,
+    duration_minutes: durationMins,
+    distance_miles: distanceMiles || null,
+    route_coordinates: walkCoords.length > 0 ? JSON.stringify(walkCoords) : null,
+    notes,
+    date: new Date().toISOString(),
+    start_time: walkStartTime ? new Date(walkStartTime).toISOString() : null,
+    end_time: new Date().toISOString(),
+  });
+
+  if (error) { showToast('Error saving: ' + error.message); return; }
+
+  // Reset UI
+  walkElapsed = 0;
+  walkCoords = [];
+  document.getElementById('walk-timer').textContent = '00:00';
+  document.getElementById('walk-distance').textContent = '0.00';
+  document.getElementById('walk-pace').textContent = '—';
+  document.getElementById('walk-notes').value = '';
+  document.getElementById('walk-notes-wrap').style.display = 'none';
+  document.getElementById('walk-save-btn').style.display = 'none';
+  document.getElementById('walk-pet-select-wrap').style.display = 'block';
+  if (walkPolyline) { walkPolyline.remove(); walkPolyline = null; }
+  if (walkCurrentMarker) { walkCurrentMarker.remove(); walkCurrentMarker = null; }
+  if (walkStartMarker) { walkStartMarker.remove(); walkStartMarker = null; }
+
+  await loadWalkHistory();
+  showToast(`Walk saved! ${durationMins}m · ${distanceMiles.toFixed(2)} mi 🦮`);
+}
+
+// ════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById(`nav-${tab}`).classList.add('active');
+  if (tab === 'pets' && pets.length === 0) renderNoPets();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+let toastTimeout;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════
+// BOOTSTRAP
+// ════════════════════════════════════════════
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    currentUser = session.user;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    await initApp();
+  }
+})();
+</script>
+</body>
+</html>
