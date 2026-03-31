@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Legal — Ruff Society Health</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#2C7BE5;--text:#1a1a2e;--text2:#6B7280;--border:#E5E7EB;--bg:#F4F6F9;--surface:#fff}
+html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:16px;line-height:1.7}
+body{max-width:760px;margin:0 auto;padding:0 24px 80px}
+
+/* HEADER */
+.site-header{padding:20px 0 0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:32px}
+.site-header img{height:32px}
+.back-link{font-size:13px;color:var(--blue);text-decoration:none;font-weight:500}
+.back-link:hover{text-decoration:underline}
+
+/* NAV TABS */
+.doc-tabs{display:flex;gap:4px;background:var(--border);border-radius:10px;padding:4px;margin-bottom:40px}
+.doc-tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;color:var(--text2);border-radius:7px;cursor:pointer;border:none;background:none;font-family:inherit;transition:all .15s}
+.doc-tab.active{background:var(--surface);color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* DOCUMENT */
+.doc{display:none}.doc.active{display:block}
+.doc-title{font-size:28px;font-weight:800;color:var(--text);margin-bottom:6px}
+.doc-meta{font-size:13px;color:var(--text2);margin-bottom:36px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+h2{font-size:19px;font-weight:700;color:var(--text);margin:36px 0 10px}
+h3{font-size:16px;font-weight:700;color:var(--text);margin:24px 0 8px}
+p{color:#374151;margin-bottom:14px;font-size:15px}
+ul,ol{padding-left:22px;margin-bottom:14px}
+li{color:#374151;font-size:15px;margin-bottom:6px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.highlight-box{background:#EBF3FD;border-left:4px solid var(--blue);border-radius:0 8px 8px 0;padding:16px 20px;margin:20px 0}
+.highlight-box p{margin-bottom:0;color:#1A5FC4;font-size:14px;font-weight:500}
+.contact-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin:28px 0}
+.contact-box p{margin-bottom:4px;font-size:14px}
+.contact-box strong{font-size:15px}
+.effective{display:inline-block;background:#DCFCE7;color:#15803D;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <img src="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png" alt="Ruff Society Health" onerror="this.style.display='none'"/>
+  <a href="https://theruffsocietyhealth.com" class="back-link">← Back to App</a>
+</div>
+
+<div class="doc-tabs">
+  <button class="doc-tab active" onclick="showDoc('privacy')">Privacy Policy</button>
+  <button class="doc-tab" onclick="showDoc('terms')">Terms of Service</button>
+  <button class="doc-tab" onclick="showDoc('cookies')">Cookie &amp; Data Notice</button>
+</div>
+
+<!-- ══ PRIVACY POLICY ══ -->
+<div class="doc active" id="doc-privacy">
+  <div class="effective">Effective March 30, 2026</div>
+  <div class="doc-title">Privacy Policy</div>
+  <div class="doc-meta">Last updated: March 30, 2026 &nbsp;·&nbsp; The Ruff Society LLC &nbsp;·&nbsp; New York, NY</div>
+
+  <div class="highlight-box"><p>We do not sell, rent, or share your personal information with any third parties for marketing purposes — ever. Your data belongs to you.</p></div>
+
+  <h2>1. Who We Are</h2>
+  <p>Ruff Society Health is a pet health tracking application operated by <strong>The Ruff Society LLC</strong>, a limited liability company registered in the State of New York ("we," "us," or "our"). You can reach us at <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a>.</p>
+  <p>This Privacy Policy explains how we collect, use, store, and protect your information when you use the Ruff Society Health app at theruffsocietyhealth.com.</p>
+
+  <h2>2. Information We Collect</h2>
+  <h3>Information You Provide Directly</h3>
+  <ul>
+    <li><strong>Account information:</strong> Your name and email address when you create an account.</li>
+    <li><strong>Profile photo:</strong> An optional photo you choose to upload for your profile.</li>
+    <li><strong>Pet information:</strong> Your pet's name, breed, species, birthday, weight, sex, microchip number, and photo.</li>
+    <li><strong>Health records:</strong> Vaccine records, vet visit notes, medications, symptoms, weight logs, feeding logs, and any notes or journal entries you create.</li>
+    <li><strong>Walk data:</strong> Walk duration, distance, notes, and photos you take during walks.</li>
+    <li><strong>Contacts:</strong> Vet, groomer, and caregiver contact information you choose to save.</li>
+    <li><strong>Calendar events:</strong> Appointments and reminders you create in the app.</li>
+  </ul>
+  <h3>Information Collected Automatically</h3>
+  <ul>
+    <li><strong>GPS location data:</strong> Your precise location is collected only during an active walk session when you start GPS tracking. Location data is used solely to draw your walk route and calculate distance. We do not track your location in the background or at any other time.</li>
+    <li><strong>Session data:</strong> We store an authentication token in your browser's local storage to keep you logged in between sessions.</li>
+  </ul>
+
+  <h2>3. How We Use Your Information</h2>
+  <p>We use your information solely to provide and improve the Ruff Society Health app. Specifically, we use it to:</p>
+  <ul>
+    <li>Create and manage your account</li>
+    <li>Store and display your pets' health records, walks, and notes</li>
+    <li>Send password reset emails when you request them</li>
+    <li>Display alerts for upcoming vaccine due dates and calendar events</li>
+    <li>Calculate walk statistics such as distance and pace</li>
+    <li>Respond to support inquiries you send us</li>
+  </ul>
+  <p>We do <strong>not</strong> use your information to serve advertisements, build marketing profiles, or sell data to any third party.</p>
+
+  <h2>4. How We Store and Protect Your Information</h2>
+  <p>Your data is stored securely using <strong>Supabase</strong>, a cloud database provider that uses industry-standard encryption (AES-256 at rest, TLS in transit). Each user's data is isolated using Row Level Security — meaning your data can only be accessed by you when you are logged in with your account credentials.</p>
+  <p>Photos and files you upload are stored in secure cloud storage with access controls that prevent other users from accessing your files.</p>
+  <p>While we take reasonable measures to protect your information, no method of transmission over the internet is 100% secure. We cannot guarantee absolute security.</p>
+
+  <h2>5. Third-Party Service Providers</h2>
+  <p>We work with the following service providers solely to operate the app. They process your data on our behalf under their own privacy policies and are contractually prohibited from using your data for any other purpose:</p>
+  <ul>
+    <li><strong>Supabase</strong> (supabase.com) — database, authentication, and file storage</li>
+    <li><strong>GitHub Pages</strong> (github.com) — app hosting</li>
+    <li><strong>OpenStreetMap / Leaflet</strong> — map tiles displayed during walk tracking (your location is not transmitted to OpenStreetMap)</li>
+  </ul>
+  <p>We do not share your information with any other third parties, including advertisers, data brokers, or analytics companies.</p>
+
+  <h2>6. GPS and Location Data</h2>
+  <p>Location access is requested only when you actively start a walk. Your GPS coordinates are used to draw your walk route on the map and calculate distance. This data is stored in your account so you can view past walks. You can delete any walk record at any time, which permanently removes the associated location data. You may also deny location access in your device settings, in which case walk tracking features will not be available but all other app features will work normally.</p>
+
+  <h2>7. Children's Privacy</h2>
+  <p>Ruff Society Health is intended for users who are 13 years of age or older. We do not knowingly collect personal information from children under 13. If you believe a child under 13 has provided us with personal information, please contact us at <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a> and we will delete that information promptly.</p>
+
+  <h2>8. Your Rights and Choices</h2>
+  <p>You have the following rights regarding your personal data:</p>
+  <ul>
+    <li><strong>Access:</strong> You can view all data stored in your account at any time within the app.</li>
+    <li><strong>Correction:</strong> You can update your profile, pet information, and any records directly in the app.</li>
+    <li><strong>Deletion:</strong> You can delete individual records (walks, vaccines, symptoms, etc.) within the app. To request full account deletion including all associated data, email us at <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a> and we will permanently delete your account within 30 days.</li>
+    <li><strong>Data portability:</strong> You may request a copy of your data by emailing us.</li>
+    <li><strong>Location:</strong> You can revoke GPS location permission in your device settings at any time.</li>
+  </ul>
+
+  <h2>9. California Privacy Rights (CCPA)</h2>
+  <p>If you are a California resident, you have the right to know what personal information we collect, request deletion of your personal information, and opt out of the sale of your personal information. We do not sell personal information. To exercise your rights, contact us at <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a>.</p>
+
+  <h2>10. Changes to This Policy</h2>
+  <p>We may update this Privacy Policy from time to time. When we do, we will update the "Last updated" date at the top of this page. If we make material changes, we will notify you by email or by a prominent notice in the app. Your continued use of the app after changes are posted constitutes your acceptance of the updated policy.</p>
+
+  <h2>11. Contact Us</h2>
+  <div class="contact-box">
+    <p><strong>The Ruff Society LLC</strong></p>
+    <p>New York, NY</p>
+    <p>Email: <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a></p>
+    <p>Website: <a href="https://theruffsocietyhealth.com">theruffsocietyhealth.com</a></p>
+  </div>
+</div>
+
+<!-- ══ TERMS OF SERVICE ══ -->
+<div class="doc" id="doc-terms">
+  <div class="effective">Effective March 30, 2026</div>
+  <div class="doc-title">Terms of Service</div>
+  <div class="doc-meta">Last updated: March 30, 2026 &nbsp;·&nbsp; The Ruff Society LLC &nbsp;·&nbsp; New York, NY</div>
+
+  <p>Please read these Terms of Service carefully before using Ruff Society Health. By creating an account or using the app, you agree to be bound by these terms.</p>
+
+  <h2>1. Acceptance of Terms</h2>
+  <p>These Terms of Service ("Terms") constitute a legally binding agreement between you and <strong>The Ruff Society LLC</strong> ("Company," "we," "us," or "our"), governing your use of the Ruff Society Health application ("App") available at theruffsocietyhealth.com. If you do not agree to these Terms, do not use the App.</p>
+
+  <h2>2. Eligibility</h2>
+  <p>You must be at least 13 years old to use this App. By using the App, you represent and warrant that you are at least 13 years of age and have the legal capacity to enter into these Terms. If you are between 13 and 18, you represent that your parent or legal guardian has reviewed and agreed to these Terms on your behalf.</p>
+
+  <h2>3. Description of Service</h2>
+  <p>Ruff Society Health is a pet health and activity tracking application that allows users to log walks, health records, vaccines, medications, symptoms, and other pet-related information. The App is provided free of charge.</p>
+
+  <div class="highlight-box"><p>⚕️ Important: Ruff Society Health is not a veterinary service. Information stored in the app is for personal record-keeping only and does not constitute veterinary advice. Always consult a licensed veterinarian for your pet's health needs.</p></div>
+
+  <h2>4. Your Account</h2>
+  <p>You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You agree to:</p>
+  <ul>
+    <li>Provide accurate and complete information when creating your account</li>
+    <li>Keep your password secure and not share it with others</li>
+    <li>Notify us immediately at <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a> if you suspect unauthorized access to your account</li>
+    <li>Take responsibility for all activities that occur under your account</li>
+  </ul>
+
+  <h2>5. Acceptable Use</h2>
+  <p>You agree to use the App only for lawful purposes and in accordance with these Terms. You agree not to:</p>
+  <ul>
+    <li>Use the App in any way that violates applicable federal, state, or local laws or regulations</li>
+    <li>Attempt to gain unauthorized access to any portion of the App or any systems connected to it</li>
+    <li>Transmit any harmful, offensive, or disruptive content</li>
+    <li>Use the App to collect or store personal information about other individuals without their consent</li>
+    <li>Attempt to reverse engineer, decompile, or disassemble the App</li>
+    <li>Use automated means to access the App without our express written permission</li>
+  </ul>
+
+  <h2>6. Not a Medical or Veterinary Service</h2>
+  <p>Ruff Society Health is a personal record-keeping tool only. Nothing in the App constitutes veterinary advice, diagnosis, or treatment. The Company is not a licensed veterinary service. Always seek the guidance of a qualified veterinarian for any questions regarding your pet's health. Never disregard professional veterinary advice or delay seeking it because of something you have read or tracked in this App.</p>
+
+  <h2>7. Your Content</h2>
+  <p>You retain full ownership of all content you upload or create in the App, including photos, notes, and health records ("Your Content"). By using the App, you grant The Ruff Society LLC a limited license to store, display, and process Your Content solely for the purpose of providing the App's features to you. We will never use Your Content for any other purpose.</p>
+  <p>You are solely responsible for Your Content and represent that you have all rights necessary to submit it. You agree not to upload content that infringes any third-party rights or violates any laws.</p>
+
+  <h2>8. Intellectual Property</h2>
+  <p>The Ruff Society Health App, including its design, features, code, and branding, is owned by The Ruff Society LLC and protected by copyright, trademark, and other intellectual property laws. You may not copy, modify, distribute, or create derivative works based on the App without our prior written consent.</p>
+
+  <h2>9. Disclaimer of Warranties</h2>
+  <p>THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. TO THE FULLEST EXTENT PERMITTED BY LAW, THE RUFF SOCIETY LLC DISCLAIMS ALL WARRANTIES, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
+  <p>We do not warrant that the App will be uninterrupted, error-free, or completely secure. We are not responsible for any loss of data, although we take reasonable measures to protect your information.</p>
+
+  <h2>10. Limitation of Liability</h2>
+  <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE RUFF SOCIETY LLC SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF DATA, LOSS OF PROFITS, OR ANY HARM TO YOUR PET ARISING FROM YOUR USE OF OR INABILITY TO USE THE APP.</p>
+  <p>In no event shall our total liability to you exceed $100 USD or the amount you paid us in the past six months, whichever is greater.</p>
+
+  <h2>11. Indemnification</h2>
+  <p>You agree to indemnify and hold harmless The Ruff Society LLC and its members, officers, employees, and agents from any claims, damages, losses, or expenses (including reasonable legal fees) arising from your use of the App, your violation of these Terms, or your violation of any rights of another person or entity.</p>
+
+  <h2>12. Termination</h2>
+  <p>We reserve the right to suspend or terminate your account at any time, with or without notice, if we believe you have violated these Terms. You may delete your account at any time by contacting us at <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a>. Upon termination, your data will be deleted in accordance with our Privacy Policy.</p>
+
+  <h2>13. Governing Law</h2>
+  <p>These Terms shall be governed by and construed in accordance with the laws of the State of New York, without regard to its conflict of law provisions. Any dispute arising under these Terms shall be subject to the exclusive jurisdiction of the state and federal courts located in New York.</p>
+
+  <h2>14. Changes to Terms</h2>
+  <p>We reserve the right to modify these Terms at any time. We will notify you of material changes by posting the updated Terms in the App and updating the "Last updated" date. Your continued use of the App after changes are posted constitutes your acceptance of the new Terms.</p>
+
+  <h2>15. Contact</h2>
+  <div class="contact-box">
+    <p><strong>The Ruff Society LLC</strong></p>
+    <p>New York, NY</p>
+    <p>Email: <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a></p>
+  </div>
+</div>
+
+<!-- ══ COOKIE & DATA NOTICE ══ -->
+<div class="doc" id="doc-cookies">
+  <div class="effective">Effective March 30, 2026</div>
+  <div class="doc-title">Cookie &amp; Data Notice</div>
+  <div class="doc-meta">Last updated: March 30, 2026 &nbsp;·&nbsp; The Ruff Society LLC &nbsp;·&nbsp; New York, NY</div>
+
+  <p>This notice explains what data Ruff Society Health stores in your browser and on your device, and why.</p>
+
+  <div class="highlight-box"><p>We do not use tracking cookies, advertising cookies, or any third-party analytics tools. We store only what is necessary to keep you logged in and make the app work.</p></div>
+
+  <h2>1. What Is a Cookie?</h2>
+  <p>A cookie is a small text file stored in your browser by a website or app. Ruff Society Health uses browser local storage (similar to cookies) to remember your login session so you don't have to sign in every time you open the app.</p>
+
+  <h2>2. What We Store and Why</h2>
+  <p>Ruff Society Health stores the following data in your browser's local storage:</p>
+  <ul>
+    <li><strong>Authentication token</strong> — A secure token provided by our authentication system (Supabase) that keeps you logged in. This token expires automatically and is deleted when you sign out. It contains no personal information — it is simply a key that lets you access your account securely.</li>
+    <li><strong>Session data</strong> — Basic session information required to maintain your login state between page visits.</li>
+  </ul>
+  <p>We do <strong>not</strong> store:</p>
+  <ul>
+    <li>Advertising or marketing cookies</li>
+    <li>Third-party tracking pixels</li>
+    <li>Analytics or behavioral tracking data</li>
+    <li>Any data from other websites you visit</li>
+  </ul>
+
+  <h2>3. Third-Party Services</h2>
+  <p>The App uses the following third-party services that may load resources in your browser:</p>
+  <ul>
+    <li><strong>Supabase</strong> — handles authentication and data storage. Supabase processes your login credentials securely and returns an authentication token stored locally in your browser.</li>
+    <li><strong>OpenStreetMap via Leaflet.js</strong> — provides map tiles displayed when you use the walk tracking feature. Map tiles are loaded from OpenStreetMap's servers. Your GPS location coordinates are not sent to OpenStreetMap — they are processed entirely within the app in your browser.</li>
+    <li><strong>GitHub Pages</strong> — hosts the App files. GitHub may log standard server access data (IP address, browser type) for security and operational purposes per their own privacy policy.</li>
+  </ul>
+
+  <h2>4. How to Control or Delete Stored Data</h2>
+  <p>You can clear your browser's local storage at any time to remove the authentication token. This will log you out of the app. Here's how:</p>
+  <ul>
+    <li><strong>iPhone/iPad (Safari):</strong> Settings → Safari → Clear History and Website Data</li>
+    <li><strong>Chrome:</strong> Settings → Privacy and Security → Clear Browsing Data → select "Cookies and other site data"</li>
+    <li><strong>Firefox:</strong> Settings → Privacy &amp; Security → Cookies and Site Data → Clear Data</li>
+    <li><strong>Safari (Mac):</strong> Preferences → Privacy → Manage Website Data → Remove All</li>
+  </ul>
+  <p>Clearing browser data removes your local session but does not delete your account or any data stored in the app. To permanently delete your account and all associated data, contact us at <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a>.</p>
+
+  <h2>5. Do Not Track</h2>
+  <p>Some browsers offer a "Do Not Track" setting. Because we do not engage in cross-site tracking, behavioral advertising, or third-party analytics, this setting has no practical effect on your experience with our App.</p>
+
+  <h2>6. Changes to This Notice</h2>
+  <p>If we change what data we store or how we use it, we will update this notice and the "Last updated" date at the top of this page.</p>
+
+  <h2>7. Contact</h2>
+  <div class="contact-box">
+    <p><strong>The Ruff Society LLC</strong></p>
+    <p>New York, NY</p>
+    <p>Email: <a href="mailto:info@theruffsociety.com">info@theruffsociety.com</a></p>
+  </div>
+</div>
+
+<script>
+function showDoc(name){
+  document.querySelectorAll('.doc').forEach(d=>d.classList.remove('active'));
+  document.querySelectorAll('.doc-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('doc-'+name).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
