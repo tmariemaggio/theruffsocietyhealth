@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Ruff Society Health</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --blue:#2C7BE5;--blue-light:#EBF3FD;--blue-dark:#1A5FC4;
+  --green:#4A7C59;--red:#C0614A;
+  --bg:#F4F6F9;--surface:#FFFFFF;--surface2:#F8F9FA;
+  --text:#1a1a2e;--text2:#6B7280;--text3:#9CA3AF;
+  --border:#E5E7EB;--border2:#D1D5DB;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1);
+  --r:12px;--r-sm:8px;--r-lg:20px;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative}
+
+/* ── AUTH ── */
+#auth-screen{position:fixed;inset:0;z-index:1000;background:#fff;display:flex;flex-direction:column;align-items:center;overflow:hidden}
+.auth-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px 0;text-align:center;width:100%}
+.auth-logo-img{width:240px;max-width:85%;display:block;margin:0 auto}
+.auth-health-row{display:flex;align-items:center;gap:5px;justify-content:center;margin-top:8px}
+.auth-health-text{font-size:14px;font-weight:700;color:#2C7BE5;letter-spacing:2.5px;text-transform:uppercase}
+.auth-paw{font-size:14px}
+.auth-tagline{color:#9CA3AF;font-size:13px;margin-top:10px}
+.auth-bottom{width:100%;padding:0 24px 32px;padding-bottom:max(32px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:9px}
+.auth-divider{height:1px;background:#F0F0F0;margin-bottom:4px}
+.auth-heading{font-size:16px;font-weight:700;color:var(--text)}
+.auth-sub-text{font-size:12px;color:var(--text3);margin-top:-4px}
+#auth-name-wrap{display:none}
+.auth-bottom input{width:100%;padding:11px 13px;border:1.5px solid #E5E7EB;border-radius:9px;font-size:14px;font-family:inherit;outline:none;background:#F9FAFB;color:var(--text);transition:border-color .15s}
+.auth-bottom input:focus{border-color:#2C7BE5;background:#fff}
+.auth-submit-btn{width:100%;padding:13px;background:#2C7BE5;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 3px 10px rgba(44,123,229,.25)}
+.auth-submit-btn:active{background:#1A5FC4}
+.auth-forgot{background:none;border:none;color:#2C7BE5;font-size:12px;cursor:pointer;font-family:inherit;text-align:right;align-self:flex-end;padding:0;margin-top:-4px}
+.auth-toggle-btn{background:none;border:none;color:#2C7BE5;font-size:12px;cursor:pointer;font-family:inherit;text-align:center}
+.auth-err{color:#C0614A;font-size:12px;min-height:14px;text-align:center}
+
+/* ── APP SHELL ── */
+#app{display:none;flex-direction:column;height:100dvh}
+#app.show{display:flex}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.h-logo{display:flex;align-items:center;gap:8px}
+.h-logo img{height:26px}
+.h-logo span{font-size:13px;color:var(--blue);font-weight:600;letter-spacing:.3px}
+.h-right{display:flex;align-items:center;gap:10px}
+#notif-btn{background:none;border:none;font-size:22px;cursor:pointer;position:relative;line-height:1}
+#notif-dot{position:absolute;top:0;right:0;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--surface);display:none}
+#notif-dot.show{display:block}
+#avatar-btn{width:34px;height:34px;border-radius:50%;border:2px solid var(--blue);background:var(--blue-light);cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.tab{display:none;padding-bottom:80px}.tab.active{display:block}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:9px;font-weight:500;color:var(--text3);transition:color .15s}
+nav button.active{color:var(--blue)}
+.ni{font-size:19px;line-height:1}
+
+/* ── SHARED COMPONENTS ── */
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin:0 12px 10px;overflow:hidden}
+.card-body{padding:14px}
+.card-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border)}
+.card-row:last-child{border-bottom:none}
+.section-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px}
+.section-hd h2{font-size:17px;font-weight:700}
+.add-btn{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.badge.current{background:#DCFCE7;color:#15803D}.badge.due{background:#FEF3C7;color:#92400E}.badge.overdue{background:#FEE2E2;color:#B91C1C}
+.badge.mild{background:#DCFCE7;color:#15803D}.badge.moderate{background:#FEF3C7;color:#92400E}.badge.severe{background:#FEE2E2;color:#B91C1C}
+.badge.ongoing{background:#FEE2E2;color:#B91C1C}.badge.monitoring{background:#FEF3C7;color:#92400E}.badge.resolved{background:#DCFCE7;color:#15803D}
+.empty-state{text-align:center;padding:36px 20px}
+.es-icon{font-size:42px;margin-bottom:10px}.empty-state p{color:var(--text2);font-size:14px}.es-sub{font-size:13px;color:var(--text3);margin-top:4px}
+.loading{display:flex;justify-content:center;padding:30px}
+.spinner{width:22px;height:22px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── HOME ── */
+.greeting{padding:18px 16px 8px}.greeting h2{font-size:22px;font-weight:700}.gdate{font-size:13px;color:var(--text2);margin-top:2px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 12px 4px}
+.stat-box{background:var(--surface);border-radius:var(--r-sm);padding:10px 8px;box-shadow:var(--shadow);text-align:center}
+.sv{font-size:18px;font-weight:700;line-height:1.1}.sl{font-size:10px;color:var(--text3);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}.si{font-size:16px;margin-bottom:2px}
+.quick-log-row{display:flex;gap:8px;padding:0 12px 4px;overflow-x:auto;scrollbar-width:none}
+.ql-btn{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-family:inherit;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;box-shadow:var(--shadow)}
+.ql-btn:active{background:var(--blue-light);border-color:var(--blue);color:var(--blue)}.qi{font-size:22px}
+.activity-item{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.activity-item:last-child{border-bottom:none}
+.act-icon{width:36px;height:36px;border-radius:50%;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.alert-item{padding:10px 14px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid var(--border)}
+.alert-item:last-child{border-bottom:none}
+.alert-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.alert-dot.red{background:var(--red)}.alert-dot.yellow{background:#F59E0B}.alert-dot.blue{background:var(--blue)}
+
+/* ── PETS ── */
+.pet-scroller{display:flex;gap:10px;padding:12px 12px 0;overflow-x:auto;scrollbar-width:none}
+.pet-chip{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:24px;background:var(--surface);border:1.5px solid var(--border2);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text);box-shadow:var(--shadow);transition:all .15s}
+.pet-chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pc-img{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--blue-light);overflow:hidden;flex-shrink:0;font-size:15px}
+.pc-img img{width:100%;height:100%;object-fit:cover}
+.pet-hero{position:relative;height:200px;background:linear-gradient(135deg,var(--blue-light),#ddeeff);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pet-hero img.hero-img{width:100%;height:100%;object-fit:cover}.hero-emoji{font-size:72px}
+.pet-hero-upload{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:500}
+.pet-name-row{padding:14px 14px 4px;display:flex;align-items:baseline;gap:8px}
+.pet-name-row h2{font-size:22px;font-weight:700}.pet-breed{font-size:14px;color:var(--text2)}
+.pet-facts{display:grid;grid-template-columns:repeat(3,1fr);padding:6px 14px 14px;gap:8px}
+.pf-label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);font-weight:600}
+.pf-val{font-size:15px;font-weight:600;margin-top:1px}
+.sub-tabs{display:flex;border-bottom:1px solid var(--border)}
+.sub-tab{flex:1;padding:11px;text-align:center;font-size:13px;font-weight:600;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all .15s}
+.sub-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.sub-panel{display:none;padding:14px}.sub-panel.active{display:block}
+.vax-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.vax-row:last-child{border-bottom:none}
+.vax-name{font-weight:600;font-size:14px}.vax-date{font-size:12px;color:var(--text2);margin-top:2px}
+.vax-right{display:flex;align-items:center;gap:6px}.chev{color:var(--text3);font-size:12px}
+
+/* ── WALKS ── */
+.walk-tracker{background:var(--surface);margin:12px;border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+#map-placeholder{height:180px;background:linear-gradient(135deg,#E0F2FE,#BAE6FD);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--text2);font-size:13px}
+.mp-icon{font-size:40px}
+#walk-map{height:260px;display:none}#walk-map.show{display:block}
+.walk-controls{padding:14px;display:flex;flex-direction:column;gap:12px}
+.walk-timer-big{text-align:center;font-size:46px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:2px;line-height:1}
+.walk-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.walk-stat{background:var(--surface2);border-radius:var(--r-sm);padding:10px;text-align:center}
+.wsv{font-size:20px;font-weight:700}.wsl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.walk-btn-row{display:flex;gap:8px}
+.walk-btn{flex:1;padding:13px;border:none;border-radius:var(--r-sm);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.walk-btn.start{background:#DCFCE7;color:#15803D}.walk-btn.start.going{background:var(--green);color:#fff}
+.walk-btn.pause{background:var(--surface2);color:var(--text)}.walk-btn.stop{background:#FEE2E2;color:#B91C1C}
+.walk-btn:disabled{opacity:.4;cursor:not-allowed}
+.walk-history-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+.walk-history-row:last-child{border-bottom:none}.walk-history-row:active{background:var(--surface2)}
+.whr-date{font-weight:600;font-size:14px}.whr-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.whr-dur{font-weight:700;color:var(--blue);font-size:15px}.whr-dist{font-size:12px;color:var(--text2);margin-top:2px}
+.photo-strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.photo-thumb{width:80px;height:80px;border-radius:var(--r-sm);object-fit:cover;flex-shrink:0;cursor:pointer}
+.add-photo-thumb{width:80px;height:80px;border-radius:var(--r-sm);background:var(--surface2);border:1.5px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;flex-shrink:0}
+
+/* ── HEALTH TAB ── */
+.sym-row{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+.sym-row:last-child{border-bottom:none}.sym-row:active{background:var(--surface2)}
+.sym-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.sym-name{font-weight:600;font-size:14px}.sym-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.vet-row{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+.vet-row:last-child{border-bottom:none}.vet-row:active{background:var(--surface2)}
+.vet-row-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.vet-title{font-weight:600;font-size:14px}.vet-sub{font-size:12px;color:var(--text2)}
+.vtype{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;background:var(--blue-light);color:var(--blue)}
+.vtype.emergency,.vtype.hospitalization{background:#FEE2E2;color:#B91C1C}
+.med-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.med-row:last-child{border-bottom:none}
+.med-info{flex:1}.med-name{font-weight:600;font-size:14px}.med-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.give-btn{padding:7px 14px;background:var(--blue);color:#fff;border:none;border-radius:20px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0}
+.given-label{background:#DCFCE7;color:#15803D;border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600;flex-shrink:0}
+.weight-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
+.weight-row:last-child{border-bottom:none}
+.wt-val{font-size:18px;font-weight:700;color:var(--blue)}.wt-date{font-size:12px;color:var(--text2);margin-top:2px}
+.sev-row{display:flex;gap:8px}
+.sev-btn{flex:1;padding:10px 4px;border-radius:var(--r-sm);border:1.5px solid var(--border2);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--text2);transition:all .15s;text-align:center}
+.sev-btn.mild.sel{background:#DCFCE7;color:#15803D;border-color:#86EFAC}
+.sev-btn.moderate.sel{background:#FEF3C7;color:#92400E;border-color:#FCD34D}
+.sev-btn.severe.sel{background:#FEE2E2;color:#B91C1C;border-color:#FCA5A5}
+.intake-row{display:flex;gap:6px;flex-wrap:wrap}
+.intake-btn{flex:1;min-width:56px;padding:9px 4px;border-radius:var(--r-sm);border:1.5px solid var(--border2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--text2);text-align:center;transition:all .15s}
+.intake-btn.sel{background:var(--blue-light);color:var(--blue);border-color:var(--blue)}
+
+/* ── CALENDAR ── */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0}
+.cal-nav h3{font-size:17px;font-weight:700}
+.cal-nav-btn{background:none;border:1px solid var(--border2);border-radius:var(--r-sm);width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:10px 12px}
+.cal-hcell{text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:4px 0}
+.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:var(--r-sm);cursor:pointer;font-size:14px;font-weight:500;color:var(--text);position:relative}
+.cal-cell:hover{background:var(--surface2)}.cal-cell.today{background:var(--blue);color:#fff;font-weight:700}
+.cal-cell.other-month{color:var(--text3)}
+.cal-cell.has-event::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--blue);position:absolute;bottom:3px}
+.cal-cell.today.has-event::after{background:#fff}
+.event-item{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px}
+.event-item:last-child{border-bottom:none}
+.event-date-box{background:var(--blue-light);border-radius:var(--r-sm);padding:6px 8px;text-align:center;min-width:42px}
+.edb-day{font-size:18px;font-weight:700;color:var(--blue);line-height:1}.edb-mon{font-size:10px;color:var(--blue);text-transform:uppercase;font-weight:600}
+.ei-title{font-weight:600;font-size:14px}.ei-sub{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* ── CONTACTS ── */
+.share-card{margin:12px;background:linear-gradient(135deg,var(--blue),var(--blue-dark));border-radius:var(--r);padding:18px;color:#fff}
+.share-card h3{font-size:16px;font-weight:700;margin-bottom:4px}
+.share-card p{font-size:13px;opacity:.85;margin-bottom:14px}
+.share-btn{background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:var(--r-sm);padding:9px 16px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.contact-item{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.contact-item:last-child{border-bottom:none}
+.con-av{width:42px;height:42px;border-radius:50%;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.con-info{flex:1;min-width:0}.con-name{font-weight:600;font-size:14px}.con-type{font-size:12px;color:var(--text2);margin-top:1px}
+.con-note{font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.con-btns{display:flex;gap:6px;flex-shrink:0}
+.con-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;text-decoration:none;line-height:1}
+.access-badge{background:var(--blue-light);color:var(--blue);border-radius:var(--r-sm);padding:2px 8px;font-size:11px;font-weight:600;margin-left:6px}
+
+/* ── NOTES ── */
+.note-card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin:0 12px 10px}
+.note-pet-tag{display:inline-flex;align-items:center;gap:4px;background:var(--blue-light);color:var(--blue);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;margin-bottom:8px}
+.note-text{font-size:14px;color:var(--text);line-height:1.5}
+.note-ts{font-size:11px;color:var(--text3);margin-top:8px}
+
+/* ── SHEETS / MODALS ── */
+.overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.sheet{width:100%;max-width:430px;background:var(--surface);border-radius:24px 24px 0 0;padding:0 0 env(safe-area-inset-bottom);max-height:92dvh;overflow-y:auto;animation:su .28s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sh-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 0}
+.sh-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sh-title{font-size:17px;font-weight:700}
+.sh-close{background:var(--surface2);border:none;border-radius:50%;width:30px;height:30px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sh-body{padding:16px}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fl{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.fi{padding:12px 13px;border:1.5px solid var(--border2);border-radius:var(--r-sm);font-size:15px;font-family:inherit;color:var(--text);background:var(--surface2);outline:none;width:100%;transition:border-color .15s}
+.fi:focus{border-color:var(--blue);background:var(--surface)}
+select.fi{cursor:pointer}
+textarea.fi{resize:vertical}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fa{display:flex;gap:10px;margin-top:6px;padding-bottom:8px}
+.btn-p{flex:1;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--r-sm);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.btn-p:disabled{opacity:.6;cursor:not-allowed}
+.btn-s{flex:1;padding:13px;background:var(--surface2);color:var(--text);border:1.5px solid var(--border2);border-radius:var(--r-sm);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.btn-danger{color:var(--red);border-color:var(--red)}
+.photo-box{border:2px dashed var(--border2);border-radius:var(--r-sm);padding:20px;text-align:center;cursor:pointer;background:var(--surface2);position:relative;margin-bottom:12px}
+.photo-box input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.pb-icon{font-size:28px;margin-bottom:6px}.photo-box p{font-size:13px;color:var(--text3)}
+.pb-preview{width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 8px;display:block}
+
+/* ── WALK DETAIL ── */
+#wd-map{height:220px}
+.wd-stats{display:flex;justify-content:space-around;padding:14px 0;border-bottom:1px solid var(--border)}
+.wds{text-align:center}.wds-v{font-size:20px;font-weight:700}.wds-l{font-size:11px;color:var(--text3);text-transform:uppercase}
+
+/* ── VET DETAIL ── */
+.detail-row{padding:10px 0;border-bottom:1px solid var(--border)}
+.detail-row:last-child{border-bottom:none}
+.detail-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.detail-val{font-size:14px;color:var(--text)}
+
+/* ── DOCUMENTS ── */
+.doc-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.doc-item:last-child{border-bottom:none}
+.doc-thumb{width:48px;height:48px;border-radius:var(--r-sm);object-fit:cover;flex-shrink:0;cursor:pointer;border:1px solid var(--border)}
+.doc-icon{width:48px;height:48px;border-radius:var(--r-sm);background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.doc-info{flex:1;min-width:0}
+.doc-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.doc-actions{display:flex;gap:6px;flex-shrink:0}
+.doc-open-btn{padding:5px 10px;background:var(--blue-light);color:var(--blue);border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center}
+.doc-del-btn{width:28px;height:28px;border-radius:50%;background:#FEE2E2;color:#B91C1C;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+/* Delete buttons on existing list items */
+.delete-row-btn{padding:4px 10px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(12px);background:rgba(26,26,46,.92);color:#fff;padding:9px 18px;border-radius:24px;font-size:13px;font-weight:500;z-index:900;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ════ AUTH ════ -->
+<div id="auth-screen">
+  <div class="auth-hero">
+    <img class="auth-logo-img"
+      src="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png"
+      alt="Ruff Society"/>
+    <div class="auth-health-row">
+      <span class="auth-health-text">Health</span>
+      <span class="auth-paw">🐾</span>
+    </div>
+    <p class="auth-tagline">Track walks, vaccines &amp; more for your pup</p>
+  </div>
+  <div class="auth-bottom">
+    <div class="auth-divider"></div>
+    <h2 class="auth-heading" id="auth-heading">Welcome back 👋</h2>
+    <p class="auth-sub-text" id="auth-sub">Sign in to continue</p>
+    <div id="auth-name-wrap"><input id="auth-name" placeholder="Your name" autocomplete="name"/></div>
+    <input id="auth-email" type="email" placeholder="Email address" autocomplete="email"/>
+    <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password"/>
+    <button class="auth-forgot" id="auth-forgot" onclick="forgotPassword()">Forgot password?</button>
+    <div class="auth-err" id="auth-err"></div>
+    <button class="auth-submit-btn" id="auth-submit">Sign In</button>
+    <button class="auth-toggle-btn" id="auth-toggle">Don't have an account? Sign up</button>
+    <div style="display:flex;justify-content:center;gap:16px;margin-top:4px">
+      <a href="/legal.html" style="font-size:11px;color:var(--text3);text-decoration:none">Privacy Policy</a>
+      <span style="font-size:11px;color:var(--text3)">·</span>
+      <a href="/legal.html" onclick="localStorage.setItem('legal-tab','terms')" style="font-size:11px;color:var(--text3);text-decoration:none">Terms of Service</a>
+    </div>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="app">
+  <header>
+    <div class="h-logo">
+      <img src="https://www.theruffsociety.com/cdn/shop/files/RuffSociety_PrimaryLogo_Cerulean.png" alt="Ruff Society" onerror="this.style.display='none'"/>
+      <span>Health</span>
+    </div>
+    <div class="h-right">
+      <button id="notif-btn" onclick="openSheet('notif-sheet')">🔔<span id="notif-dot"></span></button>
+      <button id="avatar-btn" onclick="openSheet('profile-sheet')"><span id="av-init"></span></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <div class="tab active" id="tab-home">
+      <div class="greeting"><h2 id="greet-text"></h2><div class="gdate" id="greet-date"></div></div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="si">🚶</div><div class="sv" id="s-walks">0</div><div class="sl">Walks</div></div>
+        <div class="stat-box"><div class="si">⏱</div><div class="sv" id="s-time">0m</div><div class="sl">This Wk</div></div>
+        <div class="stat-box"><div class="si">🐾</div><div class="sv" id="s-pets">0</div><div class="sl">Pets</div></div>
+        <div class="stat-box"><div class="si">💉</div><div class="sv" id="s-vax">—</div><div class="sl">Vaccines</div></div>
+      </div>
+      <div class="section-hd" style="padding-bottom:4px"><h2>Quick Log</h2></div>
+      <div class="quick-log-row">
+        <button class="ql-btn" onclick="switchTab('walks')"><span class="qi">🦮</span>Walk</button>
+        <button class="ql-btn" onclick="openSheet('feed-sheet')"><span class="qi">🍗</span>Fed</button>
+        <button class="ql-btn" onclick="openSheet('sym-sheet')"><span class="qi">🌡️</span>Symptom</button>
+        <button class="ql-btn" onclick="openSheet('med-log-sheet')"><span class="qi">💊</span>Meds</button>
+        <button class="ql-btn" onclick="openSheet('intake-sheet')"><span class="qi">💧</span>Intake</button>
+        <button class="ql-btn" onclick="openSheet('note-sheet')"><span class="qi">📝</span>Note</button>
+      </div>
+      <div class="section-hd"><h2>My Pets</h2><button class="add-btn" onclick="openSheet('add-pet-sheet')">+</button></div>
+      <div id="home-pets"></div>
+      <div class="section-hd"><h2>Upcoming &amp; Alerts</h2></div>
+      <div class="card" id="home-alerts"><div class="card-body"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="section-hd"><h2>Recent Activity</h2></div>
+      <div class="card" id="home-activity"><div class="card-body"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- PETS -->
+    <div class="tab" id="tab-pets">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px 0">
+        <span style="font-size:17px;font-weight:700">My Pets</span>
+        <button class="add-btn" onclick="openSheet('add-pet-sheet')">+</button>
+      </div>
+      <div class="pet-scroller" id="pet-chips"></div>
+      <div id="pet-detail"></div>
+    </div>
+
+    <!-- WALKS -->
+    <div class="tab" id="tab-walks">
+      <div style="padding:14px 12px 0"><span style="font-size:17px;font-weight:700">Walks</span></div>
+      <div class="walk-tracker">
+        <div id="map-placeholder"><div class="mp-icon">🗺️</div><p>Start a walk to see your route</p></div>
+        <div id="walk-map"></div>
+        <div class="walk-controls">
+          <div class="walk-timer-big" id="walk-timer">00:00</div>
+          <div class="walk-stat-row">
+            <div class="walk-stat"><div class="wsv" id="walk-dist">0.00</div><div class="wsl">Miles</div></div>
+            <div class="walk-stat"><div class="wsv" id="walk-pace">—</div><div class="wsl">Min/Mi</div></div>
+          </div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Pet</label><select class="fi" id="walk-pet-select"></select></div>
+          <div>
+            <div class="fl" style="margin-bottom:6px">Walk Photos</div>
+            <div class="photo-strip" id="walk-photo-strip">
+              <div class="add-photo-thumb" onclick="document.getElementById('walk-photo-input').click()"><span style="font-size:22px">＋</span><span>Add</span></div>
+            </div>
+            <input type="file" id="walk-photo-input" accept="image/*" style="display:none" multiple onchange="addWalkPhotos(this)"/>
+          </div>
+          <div class="fg" id="walk-notes-group" style="margin-bottom:0;display:none"><label class="fl">Notes</label><input class="fi" id="walk-notes" placeholder="How was the walk?"/></div>
+          <div class="walk-btn-row">
+            <button class="walk-btn start" id="btn-start" onclick="startWalk()">▶ Start</button>
+            <button class="walk-btn pause" id="btn-pause" onclick="pauseWalk()" disabled>⏸ Pause</button>
+            <button class="walk-btn stop" id="btn-stop" onclick="stopWalk()" disabled>⏹ Stop</button>
+          </div>
+          <button class="btn-p" id="btn-save-walk" style="display:none" onclick="saveWalk()">Save Walk</button>
+          <button class="btn-s" id="btn-cancel-walk" style="display:none" onclick="cancelWalk()">Cancel</button>
+        </div>
+      </div>
+      <div class="section-hd"><h2>Walk History</h2></div>
+      <div class="card"><div id="walk-history"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- HEALTH -->
+    <div class="tab" id="tab-health">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px 0">
+        <span style="font-size:17px;font-weight:700">Health Records</span>
+      </div>
+      <div class="pet-scroller" id="health-chips"></div>
+      <div class="section-hd"><h2>🌡️ Symptoms</h2><button class="add-btn" onclick="openSheet('sym-sheet')">+</button></div>
+      <div class="card"><div id="sym-list"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="section-hd"><h2>🏥 Vet Visits</h2><button class="add-btn" onclick="openSheet('vet-sheet')">+</button></div>
+      <div class="card"><div id="vet-list"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="section-hd"><h2>💊 Medications</h2><button class="add-btn" onclick="openSheet('add-med-sheet')">+</button></div>
+      <div class="card"><div id="meds-list"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="section-hd"><h2>⚖️ Weight Log</h2><button class="add-btn" onclick="openSheet('weight-sheet')">+</button></div>
+      <div class="card"><div id="weight-list"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="section-hd"><h2>📎 Documents &amp; Records</h2><button class="add-btn" onclick="openSheet('doc-upload-sheet')">+</button></div>
+      <div style="padding:0 12px 6px;font-size:12px;color:var(--text3)">Upload vet summaries, vaccine records, discharge papers — photos or PDFs.</div>
+      <div class="card"><div id="docs-list"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="tab" id="tab-notes">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 12px 8px">
+        <span style="font-size:17px;font-weight:700">Notes Journal 📝</span>
+        <button class="add-btn" onclick="openSheet('note-sheet')">+</button>
+      </div>
+      <div class="pet-scroller" id="notes-chips" style="margin-bottom:8px"></div>
+      <div id="notes-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="tab" id="tab-calendar">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+        <h3 id="cal-month-label"></h3>
+        <button class="cal-nav-btn" onclick="calNext()">›</button>
+      </div>
+      <div class="cal-grid" id="cal-header"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="section-hd"><h2>Upcoming Events</h2><button class="add-btn" onclick="openSheet('add-event-sheet')">+</button></div>
+      <div class="card"><div id="events-list"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- CONTACTS -->
+    <div class="tab" id="tab-contacts">
+      <div class="share-card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3>🔗 Share Care Access</h3>
+          <button class="add-btn" style="background:rgba(255,255,255,.25)" onclick="openSheet('add-contact-sheet')">+</button>
+        </div>
+        <p>Give your sitter or walker access to log feeds, walks &amp; notes.</p>
+        <button class="share-btn" onclick="copyShareLink()">📋 Copy Share Link</button>
+      </div>
+      <div class="section-hd"><h2>Contacts</h2><button class="add-btn" onclick="openSheet('add-contact-sheet')">+</button></div>
+      <div class="card"><div id="contacts-list"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="section-hd"><h2>Emergency Contacts</h2></div>
+      <div class="card"><div id="emerg-list"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+  </main>
+
+  <nav>
+    <button class="active" id="nav-home" onclick="switchTab('home')"><span class="ni">🏠</span>Home</button>
+    <button id="nav-pets" onclick="switchTab('pets')"><span class="ni">🐾</span>Pets</button>
+    <button id="nav-walks" onclick="switchTab('walks')"><span class="ni">🦮</span>Walks</button>
+    <button id="nav-health" onclick="switchTab('health')"><span class="ni">🏥</span>Health</button>
+    <button id="nav-notes" onclick="switchTab('notes')"><span class="ni">📝</span>Notes</button>
+    <button id="nav-calendar" onclick="switchTab('calendar')"><span class="ni">📅</span>Calendar</button>
+    <button id="nav-contacts" onclick="switchTab('contacts')"><span class="ni">📞</span>Contacts</button>
+  </nav>
+</div>
+
+<!-- ════ SHEETS ════ -->
+
+<!-- Notifications -->
+<div class="overlay" id="notif-sheet" onclick="if(event.target===this)closeSheet('notif-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Notifications 🔔</span><button class="sh-close" onclick="closeSheet('notif-sheet')">×</button></div>
+    <div class="sh-body" id="notif-body"><p style="color:var(--text2);font-size:14px;text-align:center;padding:20px 0">No notifications</p></div>
+  </div>
+</div>
+
+<!-- Profile -->
+<div class="overlay" id="profile-sheet" onclick="if(event.target===this)closeSheet('profile-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Profile</span><button class="sh-close" onclick="closeSheet('profile-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="photo-box" onclick="document.getElementById('prof-photo-in').click()">
+        <input type="file" id="prof-photo-in" accept="image/*" style="display:none" onchange="previewPhoto(this,'prof-preview','prof-icon')"/>
+        <img id="prof-preview" class="pb-preview" style="display:none"/><div id="prof-icon" class="pb-icon">👤</div>
+        <p>Tap to update profile photo</p>
+      </div>
+      <div class="fg"><label class="fl">Full Name</label><input class="fi" id="prof-name" placeholder="Your name"/></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="prof-email" disabled style="opacity:.6"/></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('profile-sheet')">Cancel</button><button class="btn-p" onclick="saveProfile()">Save</button></div>
+      <a href="mailto:info@theruffsociety.com?subject=Ruff Society Health - Support Request" style="display:block;width:100%;margin-top:6px;padding:13px;background:var(--surface2);color:var(--blue);border:1.5px solid var(--border2);border-radius:var(--r-sm);font-family:inherit;font-size:15px;font-weight:600;text-align:center;text-decoration:none">💬 Contact Support</a>
+      <button class="btn-s btn-danger" style="width:100%;margin-top:6px" onclick="signOut()">Sign Out</button>
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <a href="/legal.html" style="font-size:12px;color:var(--text3);text-decoration:none">Privacy Policy</a>
+        <span style="font-size:12px;color:var(--text3)">·</span>
+        <a href="/legal.html" style="font-size:12px;color:var(--text3);text-decoration:none">Terms of Service</a>
+        <span style="font-size:12px;color:var(--text3)">·</span>
+        <a href="/legal.html" style="font-size:12px;color:var(--text3);text-decoration:none">Cookie Notice</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Pet -->
+<div class="overlay" id="add-pet-sheet" onclick="if(event.target===this)closeSheet('add-pet-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Add Pet 🐾</span><button class="sh-close" onclick="closeSheet('add-pet-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="photo-box">
+        <input type="file" id="pet-photo-in" accept="image/*" onchange="previewPhoto(this,'pet-ph-prev','pet-ph-icon')"/>
+        <img id="pet-ph-prev" class="pb-preview" style="display:none"/><div id="pet-ph-icon" class="pb-icon">📷</div>
+        <p>Tap to add pet photo</p>
+      </div>
+      <div class="fg"><label class="fl">Pet Name *</label><input class="fi" id="pet-name" placeholder="e.g. Roux"/></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Species</label><select class="fi" id="pet-species"><option>Dog</option><option>Cat</option><option>Other</option></select></div>
+        <div class="fg"><label class="fl">Sex</label><select class="fi" id="pet-sex"><option value="">—</option><option>Male</option><option>Female</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">Breed</label><input class="fi" id="pet-breed" placeholder="e.g. Golden Retriever"/></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Birthday</label><input class="fi" type="date" id="pet-bday"/></div>
+        <div class="fg"><label class="fl">Weight (lbs)</label><input class="fi" type="number" id="pet-weight" placeholder="0"/></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Altered?</label><select class="fi" id="pet-neutered"><option value="false">Intact</option><option value="true">Spayed/Neutered</option></select></div>
+        <div class="fg"><label class="fl">Microchip #</label><input class="fi" id="pet-chip" placeholder="Optional"/></div>
+      </div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('add-pet-sheet')">Cancel</button><button class="btn-p" id="pet-save-btn" onclick="savePet()">Add Pet</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Vaccine -->
+<div class="overlay" id="add-vax-sheet" onclick="if(event.target===this)closeSheet('add-vax-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Add Vaccine 💉</span><button class="sh-close" onclick="closeSheet('add-vax-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet *</label><select class="fi" id="vax-pet-id"></select></div>
+      <div class="fg"><label class="fl">Vaccine Name *</label><input class="fi" id="vax-name" placeholder="e.g. Rabies, DHPP, Bordetella"/></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Date Given</label><input class="fi" type="date" id="vax-given"/></div>
+        <div class="fg"><label class="fl">Expires / Due</label><input class="fi" type="date" id="vax-expiry"/></div>
+      </div>
+      <div class="fg"><label class="fl">Administered By</label><input class="fi" id="vax-by" placeholder="Vet name (optional)"/></div>
+      <div class="fg"><label class="fl">Notes</label><input class="fi" id="vax-notes" placeholder="Optional"/></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('add-vax-sheet')">Cancel</button><button class="btn-p" id="vax-save-btn" onclick="saveVax()">Save Vaccine</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Vaccine Detail -->
+<div class="overlay" id="vax-detail-sheet" onclick="if(event.target===this)closeSheet('vax-detail-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title" id="vax-d-title">Vaccine</span><button class="sh-close" onclick="closeSheet('vax-detail-sheet')">×</button></div>
+    <div class="sh-body" id="vax-d-body"></div>
+  </div>
+</div>
+
+<!-- Walk Detail -->
+<div class="overlay" id="wd-sheet" onclick="if(event.target===this)closeSheet('wd-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title" id="wd-title">Walk Details</span><button class="sh-close" onclick="closeSheet('wd-sheet')">×</button></div>
+    <div class="sh-body" style="padding:0">
+      <div id="wd-map" style="height:220px;display:none"></div>
+      <div id="wd-no-map" style="height:80px;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px">No GPS route recorded</div>
+      <div class="wd-stats" id="wd-stats"></div>
+      <div style="padding:14px">
+        <div class="fl" style="margin-bottom:8px">Photos</div>
+        <div class="photo-strip" id="wd-photos"></div>
+        <div id="wd-notes" style="margin-top:12px;font-size:14px;color:var(--text2)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Symptom Log -->
+<div class="overlay" id="sym-sheet" onclick="if(event.target===this)closeSheet('sym-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Log Symptom 🌡️</span><button class="sh-close" onclick="closeSheet('sym-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="sym-pet-id"></select></div>
+      <div class="fg"><label class="fl">Symptom *</label><input class="fi" id="sym-name" placeholder="e.g. Vomiting, Lethargy, Not eating, Limping…"/></div>
+      <div class="fg"><label class="fl">Severity</label>
+        <div class="sev-row">
+          <button class="sev-btn mild sel" id="sev-mild" onclick="setSev('mild')">🟢 Mild</button>
+          <button class="sev-btn moderate" id="sev-moderate" onclick="setSev('moderate')">🟡 Moderate</button>
+          <button class="sev-btn severe" id="sev-severe" onclick="setSev('severe')">🔴 Severe</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Notes</label><textarea class="fi" id="sym-notes" placeholder="Describe what you observed…" rows="3"></textarea></div>
+      <div class="fg"><label class="fl">Status</label>
+        <select class="fi" id="sym-status"><option value="ongoing">Ongoing</option><option value="monitoring">Monitoring</option><option value="resolved">Resolved</option></select>
+      </div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('sym-sheet')">Cancel</button><button class="btn-p" onclick="saveSym()">Save Symptom</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Symptom Detail -->
+<div class="overlay" id="sym-detail-sheet" onclick="if(event.target===this)closeSheet('sym-detail-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title" id="sym-d-title">Symptom</span><button class="sh-close" onclick="closeSheet('sym-detail-sheet')">×</button></div>
+    <div class="sh-body" id="sym-d-body"></div>
+  </div>
+</div>
+
+<!-- Vet Visit -->
+<div class="overlay" id="vet-sheet" onclick="if(event.target===this)closeSheet('vet-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Log Vet Visit 🏥</span><button class="sh-close" onclick="closeSheet('vet-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="vet-pet-id"></select></div>
+      <div class="fg"><label class="fl">Visit Type</label>
+        <select class="fi" id="vet-type">
+          <option value="checkup">Checkup / Wellness</option>
+          <option value="emergency">Emergency</option>
+          <option value="hospitalization">Hospitalization</option>
+          <option value="follow_up">Follow-Up</option>
+          <option value="surgery">Surgery</option>
+          <option value="specialist">Specialist</option>
+        </select>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Date *</label><input class="fi" type="date" id="vet-date"/></div>
+        <div class="fg"><label class="fl">Cost ($)</label><input class="fi" type="number" id="vet-cost" placeholder="0.00" step="0.01"/></div>
+      </div>
+      <div class="fg"><label class="fl">Clinic / Hospital</label><input class="fi" id="vet-clinic" placeholder="Name of clinic"/></div>
+      <div class="fg"><label class="fl">Vet Name</label><input class="fi" id="vet-doctor" placeholder="Dr. Smith"/></div>
+      <div class="fg"><label class="fl">Reason for Visit *</label><input class="fi" id="vet-reason" placeholder="e.g. Annual exam, vomiting…"/></div>
+      <div class="fg"><label class="fl">Diagnosis</label><textarea class="fi" id="vet-dx" placeholder="What did the vet find?" rows="2"></textarea></div>
+      <div class="fg"><label class="fl">Treatment / Procedures</label><textarea class="fi" id="vet-tx" placeholder="What was done?" rows="2"></textarea></div>
+      <div class="fg"><label class="fl">Medications Prescribed</label><input class="fi" id="vet-meds" placeholder="e.g. Amoxicillin 250mg, Cerenia…"/></div>
+      <div class="fg"><label class="fl">Follow-Up Date</label><input class="fi" type="date" id="vet-followup"/></div>
+      <div class="fg"><label class="fl">Additional Notes</label><textarea class="fi" id="vet-notes" placeholder="Discharge instructions…" rows="2"></textarea></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('vet-sheet')">Cancel</button><button class="btn-p" id="vet-save-btn" onclick="saveVetVisit()">Save Visit</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Vet Detail -->
+<div class="overlay" id="vet-detail-sheet" onclick="if(event.target===this)closeSheet('vet-detail-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title" id="vet-d-title">Vet Visit</span><button class="sh-close" onclick="closeSheet('vet-detail-sheet')">×</button></div>
+    <div class="sh-body" id="vet-d-body"></div>
+  </div>
+</div>
+
+<!-- Add Ongoing Medication -->
+<div class="overlay" id="add-med-sheet" onclick="if(event.target===this)closeSheet('add-med-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Add Medication 💊</span><button class="sh-close" onclick="closeSheet('add-med-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="am-pet-id"></select></div>
+      <div class="fg"><label class="fl">Medication Name *</label><input class="fi" id="am-name" placeholder="e.g. Heartgard, Apoquel, Rimadyl…"/></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Dosage</label><input class="fi" id="am-dosage" placeholder="e.g. 25mg"/></div>
+        <div class="fg"><label class="fl">Frequency</label>
+          <select class="fi" id="am-freq"><option>Daily</option><option>Twice daily</option><option>Every 8 hours</option><option>Weekly</option><option>Monthly</option><option>As needed</option></select>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Instructions</label><input class="fi" id="am-instruct" placeholder="e.g. Give with food"/></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Start Date</label><input class="fi" type="date" id="am-start"/></div>
+        <div class="fg"><label class="fl">End Date</label><input class="fi" type="date" id="am-end"/></div>
+      </div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('add-med-sheet')">Cancel</button><button class="btn-p" id="am-save-btn" onclick="saveMedication()">Save</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Weight -->
+<div class="overlay" id="weight-sheet" onclick="if(event.target===this)closeSheet('weight-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Log Weight ⚖️</span><button class="sh-close" onclick="closeSheet('weight-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="wt-pet-id"></select></div>
+      <div class="fg"><label class="fl">Weight (lbs) *</label><input class="fi" type="number" id="wt-lbs" placeholder="0.0" step="0.1"/></div>
+      <div class="fg"><label class="fl">Notes</label><input class="fi" id="wt-notes" placeholder="e.g. After vet visit, before food…"/></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('weight-sheet')">Cancel</button><button class="btn-p" onclick="saveWeight()">Save</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Intake -->
+<div class="overlay" id="intake-sheet" onclick="if(event.target===this)closeSheet('intake-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Log Appetite &amp; Water 💧</span><button class="sh-close" onclick="closeSheet('intake-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="in-pet-id"></select></div>
+      <div class="fg"><label class="fl">Food / Appetite</label>
+        <div class="intake-row" id="food-row">
+          <button class="intake-btn" onclick="setIntake('food','none',this)">None</button>
+          <button class="intake-btn" onclick="setIntake('food','little',this)">Little</button>
+          <button class="intake-btn sel" onclick="setIntake('food','half',this)">Half</button>
+          <button class="intake-btn" onclick="setIntake('food','normal',this)">Normal</button>
+          <button class="intake-btn" onclick="setIntake('food','extra',this)">Extra</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Water Intake</label>
+        <div class="intake-row" id="water-row">
+          <button class="intake-btn" onclick="setIntake('water','none',this)">None</button>
+          <button class="intake-btn" onclick="setIntake('water','little',this)">Little</button>
+          <button class="intake-btn sel" onclick="setIntake('water','half',this)">Half</button>
+          <button class="intake-btn" onclick="setIntake('water','normal',this)">Normal</button>
+          <button class="intake-btn" onclick="setIntake('water','extra',this)">Extra</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Notes</label><input class="fi" id="in-notes" placeholder="Any observations…"/></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('intake-sheet')">Cancel</button><button class="btn-p" onclick="saveIntake()">Save</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Event -->
+<div class="overlay" id="add-event-sheet" onclick="if(event.target===this)closeSheet('add-event-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Add Event 📅</span><button class="sh-close" onclick="closeSheet('add-event-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Event Type</label>
+        <select class="fi" id="evt-type">
+          <option value="vet">🩺 Vet Appointment</option><option value="grooming">✂️ Grooming</option>
+          <option value="vaccine">💉 Vaccine Due</option><option value="medication">💊 Medication Due</option>
+          <option value="playdate">🐾 Playdate</option><option value="training">🎓 Training</option><option value="other">📌 Other</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="evt-pet-id"><option value="">— All Pets —</option></select></div>
+      <div class="fg"><label class="fl">Title *</label><input class="fi" id="evt-title" placeholder="e.g. Annual Checkup"/></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Date *</label><input class="fi" type="date" id="evt-date"/></div>
+        <div class="fg"><label class="fl">Time</label><input class="fi" type="time" id="evt-time"/></div>
+      </div>
+      <div class="fg"><label class="fl">Location / Notes</label><input class="fi" id="evt-notes" placeholder="Optional"/></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('add-event-sheet')">Cancel</button><button class="btn-p" id="evt-save-btn" onclick="saveEvent()">Save Event</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Contact -->
+<div class="overlay" id="add-contact-sheet" onclick="if(event.target===this)closeSheet('add-contact-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Add Contact 📞</span><button class="sh-close" onclick="closeSheet('add-contact-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Type</label>
+        <select class="fi" id="con-type">
+          <option value="vet">🏥 Vet</option><option value="emergency_vet">🚨 Emergency Vet</option>
+          <option value="groomer">✂️ Groomer</option><option value="walker">🦮 Dog Walker</option>
+          <option value="sitter">🏠 Dog Sitter / Caregiver</option><option value="emergency">👤 Emergency Contact</option><option value="other">📌 Other</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Name *</label><input class="fi" id="con-name" placeholder="Name or business"/></div>
+      <div class="fg"><label class="fl">Phone</label><input class="fi" type="tel" id="con-phone" placeholder="(555) 000-0000"/></div>
+      <div class="fg"><label class="fl">Address</label><input class="fi" id="con-address" placeholder="Optional"/></div>
+      <div class="fg"><label class="fl">Notes</label><input class="fi" id="con-notes" placeholder="Optional"/></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <input type="checkbox" id="con-access" style="width:18px;height:18px;accent-color:var(--blue)"/>
+        <label for="con-access" style="font-size:14px">Has care access (can log walks &amp; feeds)</label>
+      </div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('add-contact-sheet')">Cancel</button><button class="btn-p" id="con-save-btn" onclick="saveContact()">Save Contact</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Feed Log -->
+<div class="overlay" id="feed-sheet" onclick="if(event.target===this)closeSheet('feed-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Log Feeding 🍗</span><button class="sh-close" onclick="closeSheet('feed-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="feed-pet-id"></select></div>
+      <div class="fg"><label class="fl">Amount</label><input class="fi" id="feed-amount" placeholder="e.g. 1 cup"/></div>
+      <div class="fg"><label class="fl">Notes</label><input class="fi" id="feed-notes" placeholder="Optional"/></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('feed-sheet')">Cancel</button><button class="btn-p" onclick="saveFeed()">Save</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Med Log (quick one-off) -->
+<div class="overlay" id="med-log-sheet" onclick="if(event.target===this)closeSheet('med-log-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Log Medication 💊</span><button class="sh-close" onclick="closeSheet('med-log-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="ml-pet-id"></select></div>
+      <div class="fg"><label class="fl">Medication</label><input class="fi" id="ml-name" placeholder="e.g. Heartworm Prevention"/></div>
+      <div class="fg"><label class="fl">Notes</label><input class="fi" id="ml-notes" placeholder="Optional"/></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('med-log-sheet')">Cancel</button><button class="btn-p" onclick="saveMedLog()">Save</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Note -->
+<div class="overlay" id="note-sheet" onclick="if(event.target===this)closeSheet('note-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Add Note 📝</span><button class="sh-close" onclick="closeSheet('note-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="note-pet-id"><option value="">— No specific pet —</option></select></div>
+      <div class="fg"><label class="fl">Note *</label><textarea class="fi" id="note-text" placeholder="Write a note…" rows="5"></textarea></div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('note-sheet')">Cancel</button><button class="btn-p" onclick="saveNote()">Save Note</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Document Upload -->
+<div class="overlay" id="doc-upload-sheet" onclick="if(event.target===this)closeSheet('doc-upload-sheet')">
+  <div class="sheet"><div class="sh-handle"></div>
+    <div class="sh-header"><span class="sh-title">Upload Document 📎</span><button class="sh-close" onclick="closeSheet('doc-upload-sheet')">×</button></div>
+    <div class="sh-body">
+      <div class="fg"><label class="fl">Pet</label><select class="fi" id="doc-pet-id"></select></div>
+      <input type="hidden" id="doc-linked-id" value=""/>
+      <div class="fg"><label class="fl">Document Type</label>
+        <select class="fi" id="doc-type">
+          <option value="vet_visit">🏥 Vet Visit Summary / Discharge</option>
+          <option value="vaccine">💉 Vaccine Record / Certificate</option>
+          <option value="lab">🔬 Lab Results / Blood Work</option>
+          <option value="prescription">💊 Prescription / Medication Info</option>
+          <option value="xray">🩻 X-Ray / Imaging</option>
+          <option value="general">📋 General Health Record</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Document Name *</label><input class="fi" id="doc-name" placeholder="e.g. Post-op discharge summary, Rabies certificate…"/></div>
+      <div class="fg"><label class="fl">Notes</label><input class="fi" id="doc-notes" placeholder="Optional — any details about this document"/></div>
+      <div class="fg">
+        <label class="fl">File (photo or PDF) *</label>
+        <div style="border:2px dashed var(--border2);border-radius:var(--r-sm);padding:20px;text-align:center;background:var(--surface2);position:relative;cursor:pointer" onclick="document.getElementById('doc-file-input').click()">
+          <input type="file" id="doc-file-input" accept="image/*,application/pdf" style="display:none" onchange="previewDocFile(this)"/>
+          <div id="doc-file-preview" style="font-size:13px;color:var(--text3)">
+            <div style="font-size:28px;margin-bottom:6px">📎</div>
+            Tap to choose a photo or PDF
+          </div>
+        </div>
+      </div>
+      <div class="fa"><button class="btn-s" onclick="closeSheet('doc-upload-sheet')">Cancel</button><button class="btn-p" id="doc-save-btn" onclick="saveDocument()">Upload</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="overlay" id="lightbox" onclick="closeSheet('lightbox')" style="background:rgba(0,0,0,.92);align-items:center;justify-content:center">
+  <img id="lb-img" style="max-width:95%;max-height:90dvh;border-radius:var(--r);object-fit:contain"/>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════ SUPABASE ════
+const {createClient}=supabase;
+const sb=createClient('https://otfwryjoxxkctznboksp.supabase.co','sb_publishable_6gSohHTrAI_apcSuKyIJFQ_9bhpRni7');
+
+// ════ STATE ════
+let user=null,profile=null;
+let pets=[],selectedPet=null;
+let walks=[],events=[],contacts=[];
+let symptoms=[],vetVisits=[],medications=[],weightLogs=[];
+let healthPetId=null,notesPetFilter=null;
+let curSev='mild',intakeLevels={food:'half',water:'half'};
+let calDate=new Date();
+// walk
+let walkActive=false,walkPaused=false,walkStart=null,walkElapsed=0;
+let walkInterval=null,watchId=null,walkCoords=[],walkPhotoFiles=[];
+let liveMap=null,liveLine=null,liveMarker=null;
+let detailMap=null;
+
+// ════ AUTH ════
+let authMode='signin';
+document.getElementById('auth-toggle').onclick=()=>{
+  authMode=authMode==='signin'?'signup':'signin';
+  const s=authMode==='signup';
+  document.getElementById('auth-submit').textContent=s?'Create Account':'Sign In';
+  document.getElementById('auth-toggle').textContent=s?'Already have an account? Sign in':"Don't have an account? Sign up";
+  document.getElementById('auth-name-wrap').style.display=s?'block':'none';
+  document.getElementById('auth-forgot').style.display=s?'none':'block';
+  document.getElementById('auth-heading').textContent=s?'Create your account 🐾':'Welcome back 👋';
+  document.getElementById('auth-sub').textContent=s?'Join Ruff Society Health today':'Sign in to continue';
+  document.getElementById('auth-err').textContent='';
+};
+async function forgotPassword(){
+  const email=document.getElementById('auth-email').value.trim();
+  const err=document.getElementById('auth-err');
+  if(!email){err.style.color='#C0614A';err.textContent='Enter your email address first.';return;}
+  const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
+  if(error){err.style.color='#C0614A';err.textContent=error.message;}
+  else{err.style.color='#4A7C59';err.textContent='Reset email sent! Check your inbox.';}
+}
+document.getElementById('auth-submit').onclick=async()=>{
+  const email=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-password').value;
+  const err=document.getElementById('auth-err');err.textContent='';
+  if(!email||!pw){err.textContent='Please fill in all fields.';return;}
+  if(authMode==='signup'){
+    const name=document.getElementById('auth-name').value.trim();
+    const{data,error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name}}});
+    if(error){err.textContent=error.message;}
+    else if(data?.session){
+      // Email confirmation is off — user is signed in immediately
+      err.style.color='var(--green)';err.textContent='Welcome to Ruff Society Health! 🐾';
+    }else{
+      // Email confirmation is on — ask them to check inbox
+      err.style.color='var(--green)';err.textContent='Check your email to confirm your account!';
+    }
+  }else{
+    const{error}=await sb.auth.signInWithPassword({email,password:pw});
+    if(error)err.textContent=error.message;
+  }
+};
+sb.auth.onAuthStateChange(async(_,sess)=>{
+  if(sess?.user){user=sess.user;document.getElementById('auth-screen').style.display='none';document.getElementById('app').classList.add('show');await boot();}
+  else{user=null;document.getElementById('auth-screen').style.display='flex';document.getElementById('app').classList.remove('show');}
+});
+async function signOut(){await sb.auth.signOut();closeSheet('profile-sheet');}
+
+// ════ BOOT ════
+async function boot(){
+  try{
+    setGreeting();
+    await Promise.all([loadProfile(),loadPets()]);
+    await Promise.all([loadWalks(),loadEvents(),loadContacts(),loadAllHealthData()]);
+    buildStats();buildAlerts();buildActivity();renderCalendar();
+    renderHealthChips();renderNotesChips();loadNotes();
+  }catch(e){
+    console.error('Boot error:',e);
+    // If boot fails due to bad session, sign out cleanly
+    if(e?.message?.includes('JWT')||e?.message?.includes('session')||e?.message?.includes('token')){
+      await sb.auth.signOut();
+    }
+  }
+}
+function setGreeting(){
+  const h=new Date().getHours();
+  document.getElementById('greet-text').textContent=h<12?'Good morning ✦':h<17?'Good afternoon ✦':'Good evening ✦';
+  document.getElementById('greet-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+
+// ════ PROFILE ════
+async function loadProfile(){
+  const{data}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+  profile=data||{id:user.id,full_name:user.user_metadata?.full_name||''};
+  if(!data)await sb.from('profiles').insert({id:user.id,full_name:profile.full_name});
+  refreshAvatar();
+}
+function refreshAvatar(){
+  const btn=document.getElementById('avatar-btn');
+  if(profile?.avatar_url){btn.innerHTML=`<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;}
+  else{const n=profile?.full_name||user?.email||'?';btn.innerHTML=`<span id="av-init">${n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</span>`;}
+  document.getElementById('prof-name').value=profile?.full_name||'';
+  document.getElementById('prof-email').value=user?.email||'';
+  if(profile?.avatar_url){document.getElementById('prof-preview').src=profile.avatar_url;document.getElementById('prof-preview').style.display='block';document.getElementById('prof-icon').style.display='none';}
+}
+async function saveProfile(){
+  const name=document.getElementById('prof-name').value.trim();
+  const file=document.getElementById('prof-photo-in').files[0];
+  let avatarUrl=profile?.avatar_url||null;
+  if(file){const ext=file.name.split('.').pop();const path=`${user.id}/avatar.${ext}`;await sb.storage.from('avatars').upload(path,file,{upsert:true});const{data:ud}=sb.storage.from('avatars').getPublicUrl(path);avatarUrl=ud.publicUrl+'?t='+Date.now();}
+  await sb.from('profiles').upsert({id:user.id,full_name:name,avatar_url:avatarUrl,updated_at:new Date().toISOString()});
+  profile={...profile,full_name:name,avatar_url:avatarUrl};refreshAvatar();closeSheet('profile-sheet');toast('Profile saved ✓');
+}
+
+// ════ PETS ════
+async function loadPets(){
+  const{data}=await sb.from('pets').select('*').eq('user_id',user.id).order('created_at');
+  pets=data||[];
+  if(pets.length&&!selectedPet)selectedPet=pets[0];
+  if(pets.length&&!healthPetId)healthPetId=pets[0].id;
+  renderPetChips();renderHomePets();renderPetDetail();populateDropdowns();
+}
+function renderPetChips(){
+  const el=document.getElementById('pet-chips');if(!pets.length){el.innerHTML='';return;}
+  el.innerHTML=pets.map(p=>`<button class="pet-chip${p.id===selectedPet?.id?' active':''}" onclick="selectPet('${p.id}')">${petThumb(p)}${p.name}</button>`).join('');
+}
+function renderHomePets(){
+  const el=document.getElementById('home-pets');
+  if(!pets.length){el.innerHTML=`<div class="card"><div class="card-body"><div class="empty-state"><div class="es-icon">🐾</div><p>No pets yet</p><div class="es-sub">Tap + to add your first pet</div></div></div></div>`;return;}
+  el.innerHTML=`<div class="card">${pets.map(p=>`<div class="card-row" style="cursor:pointer" onclick="switchTab('pets');selectPet('${p.id}')"><div style="display:flex;align-items:center;gap:12px"><div style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">${p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover"/>`:(p.species==='Cat'?'🐱':'🐕')}</div><div><div style="font-weight:600">${p.name}</div><div style="font-size:12px;color:var(--text2)">${p.breed||p.species||''}${p.birthday?' · '+petAge(p.birthday):''}</div></div></div><span style="color:var(--text3)">›</span></div>`).join('')}</div>`;
+}
+async function selectPet(id){selectedPet=pets.find(p=>p.id===id)||pets[0];renderPetChips();await renderPetDetail();}
+async function renderPetDetail(){
+  const el=document.getElementById('pet-detail');
+  if(!pets.length){el.innerHTML=`<div style="padding:16px"><div class="card"><div class="card-body"><div class="empty-state"><div class="es-icon">🐾</div><p>Add your first pet</p></div></div></div></div>`;return;}
+  const p=selectedPet||pets[0];
+  el.innerHTML=`<div class="card" style="margin:12px">
+    <div class="pet-hero">${p.photo_url?`<img class="hero-img" src="${p.photo_url}"/>`:`<div class="hero-emoji">${p.species==='Cat'?'🐱':'🐕'}</div>`}
+      <button class="pet-hero-upload" onclick="document.getElementById('petup-${p.id}').click()">📷 Update Photo</button>
+      <input type="file" id="petup-${p.id}" accept="image/*" style="display:none" onchange="uploadPetPhoto(this,'${p.id}')"/>
+    </div>
+    <div class="pet-name-row"><h2>${p.name}</h2><span class="pet-breed">${p.breed||''}</span></div>
+    <div class="pet-facts">
+      <div><div class="pf-label">Age</div><div class="pf-val">${p.birthday?petAge(p.birthday):'—'}</div></div>
+      <div><div class="pf-label">Weight</div><div class="pf-val">${p.weight_lbs?p.weight_lbs+' lbs':'—'}</div></div>
+      <div><div class="pf-label">Sex</div><div class="pf-val">${p.sex||'—'}</div></div>
+    </div>
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="showSubTab(this,'spt-health-${p.id}')">Health</button>
+      <button class="sub-tab" onclick="showSubTab(this,'spt-vax-${p.id}')">Vaccines</button>
+      <button class="sub-tab" onclick="showSubTab(this,'spt-info-${p.id}')">Info</button>
+    </div>
+    <div class="sub-panel active" id="spt-health-${p.id}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <button style="padding:14px;background:var(--blue-light);border:none;border-radius:var(--r-sm);cursor:pointer;font-family:inherit;text-align:center" onclick="healthPetId='${p.id}';switchTab('health');loadAllHealthData()">
+          <div style="font-size:22px;margin-bottom:4px">🌡️</div><div style="font-size:12px;font-weight:600;color:var(--blue)">Symptoms</div>
+        </button>
+        <button style="padding:14px;background:var(--blue-light);border:none;border-radius:var(--r-sm);cursor:pointer;font-family:inherit;text-align:center" onclick="healthPetId='${p.id}';switchTab('health');loadAllHealthData()">
+          <div style="font-size:22px;margin-bottom:4px">🏥</div><div style="font-size:12px;font-weight:600;color:var(--blue)">Vet Visits</div>
+        </button>
+        <button style="padding:14px;background:var(--blue-light);border:none;border-radius:var(--r-sm);cursor:pointer;font-family:inherit;text-align:center" onclick="healthPetId='${p.id}';switchTab('health');loadAllHealthData()">
+          <div style="font-size:22px;margin-bottom:4px">💊</div><div style="font-size:12px;font-weight:600;color:var(--blue)">Medications</div>
+        </button>
+        <button style="padding:14px;background:var(--blue-light);border:none;border-radius:var(--r-sm);cursor:pointer;font-family:inherit;text-align:center" onclick="healthPetId='${p.id}';switchTab('health');loadAllHealthData()">
+          <div style="font-size:22px;margin-bottom:4px">⚖️</div><div style="font-size:12px;font-weight:600;color:var(--blue)">Weight Log</div>
+        </button>
+      </div>
+      <button class="btn-p" style="width:100%" onclick="healthPetId='${p.id}';switchTab('health');loadAllHealthData()">View Full Health Record →</button>
+    </div>
+    <div class="sub-panel" id="spt-vax-${p.id}">
+      <div id="vax-list-${p.id}"><div class="loading"><div class="spinner"></div></div></div>
+      <button class="btn-p" style="width:100%;margin-top:10px" onclick="openVaxSheet('${p.id}')">+ Add Vaccine</button>
+    </div>
+    <div class="sub-panel" id="spt-info-${p.id}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div class="pf-label">Birthday</div><div class="pf-val" style="font-size:13px">${p.birthday?fmtDate(p.birthday):'—'}</div></div>
+        <div><div class="pf-label">Microchip</div><div class="pf-val" style="font-size:11px">${p.microchip||'—'}</div></div>
+        <div><div class="pf-label">Altered</div><div class="pf-val">${p.neutered?'Yes':'No'}</div></div>
+        <div><div class="pf-label">Species</div><div class="pf-val">${p.species||'Dog'}</div></div>
+      </div>
+    </div>
+  </div>`;
+  await loadVaxList(p.id);
+}
+function showSubTab(btn,panelId){
+  const card=btn.closest('.card');
+  card.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+  card.querySelectorAll('.sub-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById(panelId)?.classList.add('active');
+}
+function petThumb(p){return`<div class="pc-img">${p.photo_url?`<img src="${p.photo_url}"/>`:(p.species==='Cat'?'🐱':'🐕')}</div>`;}
+async function uploadPetPhoto(input,petId){
+  const file=input.files[0];if(!file)return;toast('Uploading…');
+  const ext=file.name.split('.').pop();const path=`${user.id}/${petId}.${ext}`;
+  await sb.storage.from('pet-photos').upload(path,file,{upsert:true});
+  const{data:ud}=sb.storage.from('pet-photos').getPublicUrl(path);
+  const url=ud.publicUrl+'?t='+Date.now();
+  await sb.from('pets').update({photo_url:url}).eq('id',petId);
+  const p=pets.find(x=>x.id===petId);if(p)p.photo_url=url;
+  renderPetChips();renderHomePets();await renderPetDetail();toast('Photo updated ✓');
+}
+async function savePet(){
+  const name=document.getElementById('pet-name').value.trim();if(!name){toast('Pet name required');return;}
+  const btn=document.getElementById('pet-save-btn');btn.disabled=true;btn.textContent='Adding…';
+  const{data,error}=await sb.from('pets').insert({user_id:user.id,name,
+    species:document.getElementById('pet-species').value,
+    breed:document.getElementById('pet-breed').value.trim()||null,
+    birthday:document.getElementById('pet-bday').value||null,
+    weight_lbs:parseFloat(document.getElementById('pet-weight').value)||null,
+    sex:document.getElementById('pet-sex').value||null,
+    neutered:document.getElementById('pet-neutered').value==='true',
+    microchip:document.getElementById('pet-chip').value.trim()||null,
+  }).select().single();
+  if(error){toast('Error saving pet: '+error.message);btn.disabled=false;btn.textContent='Add Pet';return;}
+  const file=document.getElementById('pet-photo-in').files[0];
+  if(file){const ext=file.name.split('.').pop();const path=`${user.id}/${data.id}.${ext}`;await sb.storage.from('pet-photos').upload(path,file,{upsert:true});const{data:ud}=sb.storage.from('pet-photos').getPublicUrl(path);data.photo_url=ud.publicUrl+'?t='+Date.now();await sb.from('pets').update({photo_url:data.photo_url}).eq('id',data.id);}
+  pets.push(data);selectedPet=data;if(!healthPetId)healthPetId=data.id;
+  renderPetChips();renderHomePets();populateDropdowns();await renderPetDetail();renderHealthChips();renderNotesChips();
+  closeSheet('add-pet-sheet');
+  ['pet-name','pet-breed','pet-bday','pet-weight','pet-chip'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pet-photo-in').value='';document.getElementById('pet-ph-prev').style.display='none';document.getElementById('pet-ph-icon').style.display='block';
+  btn.disabled=false;btn.textContent='Add Pet';buildStats();toast(name+' added! 🐾');
+}
+function petAge(bd){const diff=Date.now()-new Date(bd).getTime();const y=Math.floor(diff/(1000*60*60*24*365.25));if(y===0){return Math.floor(diff/(1000*60*60*24*30))+'mo';}return y+'yr';}
+
+// ════ DROPDOWNS ════
+function populateDropdowns(){
+  const opts=pets.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const fallback='<option value="">No pets yet</option>';
+  ['vax-pet-id','walk-pet-select','feed-pet-id','ml-pet-id','sym-pet-id','vet-pet-id','am-pet-id','wt-pet-id','in-pet-id','doc-pet-id'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML=opts||fallback;
+    if(selectedPet&&opts)el.value=selectedPet.id;
+  });
+  const evtEl=document.getElementById('evt-pet-id');if(evtEl)evtEl.innerHTML='<option value="">— All Pets —</option>'+opts;
+  const noteEl=document.getElementById('note-pet-id');if(noteEl)noteEl.innerHTML='<option value="">— No specific pet —</option>'+opts;
+}
+
+// ════ VACCINES ════
+async function loadVaxList(petId){
+  const el=document.getElementById(`vax-list-${petId}`);if(!el)return;
+  const{data}=await sb.from('vaccines').select('*').eq('pet_id',petId).order('expiry_date');
+  if(!data?.length){el.innerHTML=`<div class="empty-state" style="padding:20px 0"><div class="es-icon">💉</div><p>No vaccines recorded</p></div>`;return;}
+  el.innerHTML=data.map(v=>{const{cls,txt}=vaxStat(v.expiry_date);return`<div class="vax-row"><div onclick="openVaxDetail('${v.id}','${petId}')" style="flex:1;cursor:pointer"><div class="vax-name">${v.name}</div><div class="vax-date">${v.administered_date?'Given '+fmtDate(v.administered_date):''}${v.notes?' · '+v.notes:''}</div></div><div class="vax-right"><span class="badge ${cls}">${txt}</span><button class="delete-row-btn" style="margin-left:4px" onclick="deleteVax('${v.id}','${petId}')">🗑</button></div></div>`;}).join('');
+}
+function vaxStat(ed){if(!ed)return{cls:'current',txt:'Current'};const d=Math.ceil((new Date(ed+'T00:00:00')-new Date())/(864e5));if(d<0)return{cls:'overdue',txt:'Overdue'};if(d<=30)return{cls:'due',txt:'Due '+new Date(ed+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})};return{cls:'current',txt:'Due '+new Date(ed+'T00:00:00').getFullYear()};}
+function openVaxSheet(petId){if(petId)document.getElementById('vax-pet-id').value=petId;openSheet('add-vax-sheet');}
+async function saveVax(){
+  const petId=document.getElementById('vax-pet-id').value;const name=document.getElementById('vax-name').value.trim();
+  if(!name||!petId){toast('Pet and vaccine name required');return;}
+  const btn=document.getElementById('vax-save-btn');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const byNote=document.getElementById('vax-by').value.trim();const exNote=document.getElementById('vax-notes').value.trim();
+    const notes=[byNote?'By: '+byNote:'',exNote].filter(Boolean).join(' ')||null;
+    const{error}=await sb.from('vaccines').insert({user_id:user.id,pet_id:petId,name,administered_date:document.getElementById('vax-given').value||null,expiry_date:document.getElementById('vax-expiry').value||null,notes,status:'current'});
+    if(error)throw error;
+    closeSheet('add-vax-sheet');['vax-name','vax-given','vax-expiry','vax-by','vax-notes'].forEach(id=>document.getElementById(id).value='');
+    await loadVaxList(petId);buildStats();buildAlerts();toast('Vaccine saved ✓');
+  }catch(e){toast('Error: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Save Vaccine';}
+}
+async function openVaxDetail(vaxId,petId){
+  const{data:v}=await sb.from('vaccines').select('*').eq('id',vaxId).single();if(!v)return;
+  const{cls,txt}=vaxStat(v.expiry_date);
+  document.getElementById('vax-d-title').textContent=v.name;
+  document.getElementById('vax-d-body').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px"><span style="font-size:36px">💉</span>
+      <div><div style="font-size:20px;font-weight:700">${v.name}</div><span class="badge ${cls}" style="margin-top:6px;display:inline-block">${txt}</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div class="pf-label">Date Given</div><div class="pf-val" style="font-size:14px">${v.administered_date?fmtDate(v.administered_date):'—'}</div></div>
+      <div><div class="pf-label">Expires</div><div class="pf-val" style="font-size:14px">${v.expiry_date?fmtDate(v.expiry_date):'—'}</div></div>
+    </div>
+    ${v.notes?`<div style="background:var(--surface2);border-radius:var(--r-sm);padding:12px;font-size:14px;color:var(--text2);margin-bottom:16px">${v.notes}</div>`:''}
+    <div class="fa">
+      <button class="btn-s btn-danger" onclick="deleteVax('${v.id}','${petId}')">🗑 Delete</button>
+      <button class="btn-p" onclick="prefillVax('${v.id}','${petId}')">Edit</button>
+    </div>`;
+  openSheet('vax-detail-sheet');
+}
+async function deleteVax(id,petId){if(!confirm('Delete this vaccine?'))return;await sb.from('vaccines').delete().eq('id',id);closeSheet('vax-detail-sheet');await loadVaxList(petId);buildAlerts();toast('Deleted');}
+async function prefillVax(id,petId){
+  const{data:v}=await sb.from('vaccines').select('*').eq('id',id).single();if(!v)return;
+  document.getElementById('vax-pet-id').value=petId;document.getElementById('vax-name').value=v.name||'';
+  document.getElementById('vax-given').value=v.administered_date||'';document.getElementById('vax-expiry').value=v.expiry_date||'';
+  document.getElementById('vax-notes').value=v.notes||'';
+  closeSheet('vax-detail-sheet');openSheet('add-vax-sheet');
+}
+
+// ════ WALKS ════
+async function loadWalks(){
+  const{data}=await sb.from('walks').select('*').eq('user_id',user.id).order('date',{ascending:false}).limit(30);
+  walks=data||[];renderWalkHistory();buildStats();buildActivity();
+}
+function renderWalkHistory(){
+  const el=document.getElementById('walk-history');
+  if(!walks.length){el.innerHTML=`<div class="empty-state"><div class="es-icon">🦮</div><p>No walks yet</p><div class="es-sub">Start your first walk above</div></div>`;return;}
+  el.innerHTML=walks.map(w=>{const pet=pets.find(p=>p.id===w.pet_id);return`<div class="walk-history-row" onclick="openWalkDetail('${w.id}')"><div><div class="whr-date">${new Date(w.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</div><div class="whr-meta">${pet?pet.name+' · ':''}${w.notes||''}</div></div><div style="text-align:right"><div class="whr-dur">${w.duration_minutes||0}m</div><div class="whr-dist">${w.distance_miles?parseFloat(w.distance_miles).toFixed(2)+' mi':''}</div></div></div>`;}).join('');
+}
+function startWalk(){
+  if(!navigator.geolocation){toast('GPS not available');return;}
+  walkActive=true;walkPaused=false;walkCoords=[];walkPhotoFiles=[];
+  walkStart=Date.now()-walkElapsed*1000;
+  document.getElementById('btn-start').disabled=true;document.getElementById('btn-start').classList.add('going');
+  document.getElementById('btn-pause').disabled=false;document.getElementById('btn-stop').disabled=false;
+  document.getElementById('walk-notes-group').style.display='none';document.getElementById('btn-save-walk').style.display='none';document.getElementById('btn-cancel-walk').style.display='none';
+  initLiveMap();walkInterval=setInterval(tickWalk,1000);
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    if(walkPaused)return;const{latitude:lat,longitude:lng,accuracy}=pos.coords;if(accuracy>60)return;
+    walkCoords.push([lat,lng]);updateLiveMap(lat,lng);
+    document.getElementById('walk-dist').textContent=walkDist().toFixed(2);updatePace();
+  },()=>toast('GPS signal lost — check permissions'),{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  toast('Walk started — GPS tracking 📍');
+}
+function pauseWalk(){
+  walkPaused=!walkPaused;
+  if(walkPaused){clearInterval(walkInterval);document.getElementById('btn-pause').textContent='▶ Resume';}
+  else{walkStart=Date.now()-walkElapsed*1000;walkInterval=setInterval(tickWalk,1000);document.getElementById('btn-pause').textContent='⏸ Pause';}
+  toast(walkPaused?'Paused':'Resumed');
+}
+function stopWalk(){
+  walkActive=false;clearInterval(walkInterval);if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  document.getElementById('btn-pause').disabled=true;document.getElementById('btn-stop').disabled=true;document.getElementById('btn-start').disabled=false;
+  document.getElementById('walk-notes-group').style.display='block';document.getElementById('btn-save-walk').style.display='block';document.getElementById('btn-cancel-walk').style.display='block';
+  toast('Walk stopped — save when ready');
+}
+function cancelWalk(){
+  clearInterval(walkInterval);if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  walkElapsed=0;walkCoords=[];walkPhotoFiles=[];
+  document.getElementById('walk-timer').textContent='00:00';document.getElementById('walk-dist').textContent='0.00';document.getElementById('walk-pace').textContent='—';
+  document.getElementById('btn-start').disabled=false;document.getElementById('btn-start').classList.remove('going');
+  document.getElementById('btn-pause').disabled=true;document.getElementById('btn-pause').textContent='⏸ Pause';document.getElementById('btn-stop').disabled=true;
+  document.getElementById('walk-notes-group').style.display='none';document.getElementById('btn-save-walk').style.display='none';document.getElementById('btn-cancel-walk').style.display='none';
+  document.getElementById('walk-notes').value='';
+  document.getElementById('walk-photo-strip').innerHTML=`<div class="add-photo-thumb" onclick="document.getElementById('walk-photo-input').click()"><span style="font-size:22px">＋</span><span>Add</span></div>`;
+  if(liveMap){liveMap.remove();liveMap=null;liveLine=null;liveMarker=null;}
+  document.getElementById('walk-map').classList.remove('show');document.getElementById('walk-map').innerHTML='';document.getElementById('map-placeholder').style.display='flex';
+  toast('Walk cancelled');
+}
+function tickWalk(){walkElapsed=Math.floor((Date.now()-walkStart)/1000);const m=Math.floor(walkElapsed/60).toString().padStart(2,'0');const s=(walkElapsed%60).toString().padStart(2,'0');document.getElementById('walk-timer').textContent=`${m}:${s}`;}
+function initLiveMap(){const el=document.getElementById('walk-map');el.classList.add('show');el.innerHTML='';document.getElementById('map-placeholder').style.display='none';liveMap=L.map(el,{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(liveMap);L.control.zoom({position:'bottomright'}).addTo(liveMap);}
+function updateLiveMap(lat,lng){if(!liveMap)return;if(liveLine)liveLine.remove();if(walkCoords.length>0)liveLine=L.polyline(walkCoords,{color:'#2C7BE5',weight:4,opacity:.85}).addTo(liveMap);if(liveMarker)liveMarker.remove();liveMarker=L.circleMarker([lat,lng],{radius:8,color:'#2C7BE5',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(liveMap);liveMap.setView([lat,lng],16);}
+function walkDist(){if(walkCoords.length<2)return 0;let d=0;for(let i=1;i<walkCoords.length;i++)d+=haversine(walkCoords[i-1],walkCoords[i]);return d;}
+function haversine([la1,lo1],[la2,lo2]){const R=3958.8,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function updatePace(){const dist=walkDist();if(dist<.05||walkElapsed<30){document.getElementById('walk-pace').textContent='—';return;}const pace=(walkElapsed/60)/dist;const pm=Math.floor(pace);const ps=Math.round((pace-pm)*60).toString().padStart(2,'0');document.getElementById('walk-pace').textContent=`${pm}:${ps}`;}
+function addWalkPhotos(input){Array.from(input.files).forEach(f=>{walkPhotoFiles.push(f);const r=new FileReader();r.onload=e=>{const strip=document.getElementById('walk-photo-strip');const img=document.createElement('img');img.src=e.target.result;img.className='photo-thumb';img.onclick=()=>openLightbox(e.target.result);strip.insertBefore(img,strip.firstChild);};r.readAsDataURL(f);});}
+async function saveWalk(){
+  const btn=document.getElementById('btn-save-walk');btn.disabled=true;btn.textContent='Saving…';
+  const petId=document.getElementById('walk-pet-select').value||null;
+  const dMins=Math.max(1,Math.round(walkElapsed/60));const distMi=parseFloat(walkDist().toFixed(4));
+  const{data:w,error}=await sb.from('walks').insert({user_id:user.id,pet_id:petId,duration_minutes:dMins,distance_miles:distMi||null,route_coordinates:walkCoords.length>1?JSON.stringify(walkCoords):null,notes:document.getElementById('walk-notes').value.trim()||null,date:new Date().toISOString(),start_time:walkStart?new Date(walkStart).toISOString():null,end_time:new Date().toISOString()}).select().single();
+  if(error){toast('Error: '+error.message);btn.disabled=false;btn.textContent='Save Walk';return;}
+  for(let i=0;i<walkPhotoFiles.length;i++){const f=walkPhotoFiles[i];const ext=f.name.split('.').pop();const path=`${user.id}/${w.id}_${i}.${ext}`;const{error:ue}=await sb.storage.from('walk-photos').upload(path,f,{upsert:true});if(!ue){const{data:ud}=sb.storage.from('walk-photos').getPublicUrl(path);await sb.from('walk_photos').insert({user_id:user.id,walk_id:w.id,photo_url:ud.publicUrl});}}
+  cancelWalk();await loadWalks();btn.disabled=false;btn.textContent='Save Walk';toast(`Walk saved! ${dMins}m${distMi?' · '+distMi.toFixed(2)+' mi':''} 🦮`);
+}
+async function openWalkDetail(walkId){
+  const walk=walks.find(w=>w.id===walkId);if(!walk)return;
+  const pet=pets.find(p=>p.id===walk.pet_id);
+  document.getElementById('wd-title').textContent=new Date(walk.date).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('wd-stats').innerHTML=`<div class="wds"><div class="wds-v">${walk.duration_minutes||0}m</div><div class="wds-l">Duration</div></div><div class="wds"><div class="wds-v">${walk.distance_miles?parseFloat(walk.distance_miles).toFixed(2):'—'}</div><div class="wds-l">Miles</div></div><div class="wds"><div class="wds-v">${pet?pet.name:'—'}</div><div class="wds-l">Pet</div></div>`;
+  document.getElementById('wd-notes').textContent=walk.notes||'';
+  const mapEl=document.getElementById('wd-map');const noMap=document.getElementById('wd-no-map');
+  if(detailMap){detailMap.remove();detailMap=null;}mapEl.innerHTML='';
+  if(walk.route_coordinates){
+    const coords=typeof walk.route_coordinates==='string'?JSON.parse(walk.route_coordinates):walk.route_coordinates;
+    if(coords?.length>0){mapEl.style.display='block';noMap.style.display='none';detailMap=L.map(mapEl,{zoomControl:false,attributionControl:false});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(detailMap);const line=L.polyline(coords,{color:'#2C7BE5',weight:4,opacity:.85}).addTo(detailMap);L.circleMarker(coords[0],{radius:7,color:'#4A7C59',fillColor:'#4A7C59',fillOpacity:1}).addTo(detailMap);L.circleMarker(coords[coords.length-1],{radius:7,color:'#2C7BE5',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(detailMap);detailMap.fitBounds(line.getBounds(),{padding:[20,20]});}
+  }else{mapEl.style.display='none';noMap.style.display='flex';}
+  const{data:photos}=await sb.from('walk_photos').select('*').eq('walk_id',walkId);
+  const strip=document.getElementById('wd-photos');
+  strip.innerHTML=photos?.length?photos.map(p=>`<img class="photo-thumb" src="${p.photo_url}" onclick="openLightbox('${p.photo_url}')"/>`).join(''):'<span style="font-size:13px;color:var(--text3)">No photos for this walk</span>';
+  openSheet('wd-sheet');if(detailMap)setTimeout(()=>detailMap.invalidateSize(),300);
+}
+
+// ════ HEALTH ════
+async function loadAllHealthData(){
+  await Promise.all([loadSymptoms(),loadVetVisits(),loadMedications(),loadWeightLogs(),loadDocuments()]);
+}
+function renderHealthChips(){
+  const el=document.getElementById('health-chips');if(!el||!pets.length){if(el)el.innerHTML='';return;}
+  el.innerHTML=pets.map(p=>`<button class="pet-chip${p.id===healthPetId?' active':''}" onclick="selectHealthPet('${p.id}')">${petThumb(p)}${p.name}</button>`).join('');
+}
+async function selectHealthPet(id){healthPetId=id;renderHealthChips();await loadAllHealthData();}
+
+// Symptoms
+async function loadSymptoms(){
+  const el=document.getElementById('sym-list');if(!el)return;
+  let q=sb.from('symptoms').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(30);
+  if(healthPetId)q=q.eq('pet_id',healthPetId);
+  const{data}=await q;symptoms=data||[];
+  if(!symptoms.length){el.innerHTML=`<div class="empty-state"><div class="es-icon">🌡️</div><p>No symptoms logged</p><div class="es-sub">Tap + to log a symptom</div></div>`;return;}
+  el.innerHTML=symptoms.map(s=>{
+    const dot=s.severity==='mild'?'#22C55E':s.severity==='moderate'?'#F59E0B':'#EF4444';
+    const pet=pets.find(p=>p.id===s.pet_id);
+    return`<div class="sym-row">
+      <div class="sym-dot" style="background:${dot}"></div>
+      <div style="flex:1" onclick="openSymDetail('${s.id}')"><div class="sym-name">${s.symptom}</div><div class="sym-sub">${pet?pet.name+' · ':''}${new Date(s.started_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        <span class="badge ${s.severity}">${s.severity}</span>
+        <span class="badge ${s.status}" style="font-size:10px">${s.status}</span>
+        <button class="delete-row-btn" onclick="deleteSym('${s.id}')">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function setSev(sev){curSev=sev;['mild','moderate','severe'].forEach(s=>{const b=document.getElementById('sev-'+s);if(b)b.classList.toggle('sel',s===sev);});}
+async function saveSym(){
+  const petId=document.getElementById('sym-pet-id').value;const name=document.getElementById('sym-name').value.trim();
+  if(!name){toast('Symptom description required');return;}
+  await sb.from('symptoms').insert({user_id:user.id,pet_id:petId||null,symptom:name,severity:curSev,notes:document.getElementById('sym-notes').value.trim()||null,status:document.getElementById('sym-status').value,started_at:new Date().toISOString()});
+  closeSheet('sym-sheet');document.getElementById('sym-name').value='';document.getElementById('sym-notes').value='';setSev('mild');
+  await loadSymptoms();buildActivity();toast('Symptom logged 🌡️');
+}
+async function openSymDetail(id){
+  const s=symptoms.find(x=>x.id===id);if(!s)return;
+  const pet=pets.find(p=>p.id===s.pet_id);
+  document.getElementById('sym-d-title').textContent=s.symptom;
+  document.getElementById('sym-d-body').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span style="font-size:32px">🌡️</span>
+      <div><div style="font-size:18px;font-weight:700">${s.symptom}</div><div style="margin-top:6px;display:flex;gap:6px"><span class="badge ${s.severity}">${s.severity}</span><span class="badge ${s.status}">${s.status}</span></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div><div class="pf-label">Pet</div><div class="pf-val" style="font-size:14px">${pet?pet.name:'—'}</div></div>
+      <div><div class="pf-label">Logged</div><div class="pf-val" style="font-size:14px">${new Date(s.started_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div></div>
+    </div>
+    ${s.notes?`<div style="background:var(--surface2);border-radius:var(--r-sm);padding:12px;font-size:14px;color:var(--text2);margin-bottom:16px">${s.notes}</div>`:''}
+    <div class="fa">
+      <button class="btn-s btn-danger" onclick="deleteSym('${s.id}')">🗑 Delete</button>
+      <button class="btn-p" onclick="closeSheet('sym-detail-sheet')">Close</button>
+    </div>`;
+  openSheet('sym-detail-sheet');
+}
+async function deleteSym(id){if(!confirm('Delete this symptom?'))return;await sb.from('symptoms').delete().eq('id',id);closeSheet('sym-detail-sheet');await loadSymptoms();toast('Deleted');}
+
+// Vet Visits
+async function loadVetVisits(){
+  const el=document.getElementById('vet-list');if(!el)return;
+  let q=sb.from('vet_visits').select('*').eq('user_id',user.id).order('visit_date',{ascending:false}).limit(30);
+  if(healthPetId)q=q.eq('pet_id',healthPetId);
+  const{data}=await q;vetVisits=data||[];
+  if(!vetVisits.length){el.innerHTML=`<div class="empty-state"><div class="es-icon">🏥</div><p>No vet visits recorded</p><div class="es-sub">Tap + to log a visit</div></div>`;return;}
+  el.innerHTML=vetVisits.map(v=>{
+    const emg=v.visit_type==='emergency'||v.visit_type==='hospitalization';
+    const pet=pets.find(p=>p.id===v.pet_id);
+    return`<div class="vet-row">
+      <div onclick="openVetDetail('${v.id}')" style="cursor:pointer">
+        <div class="vet-row-top"><span class="vet-title">${v.reason}</span><span class="vtype${emg?' emergency':''}">${(v.visit_type||'checkup').replace('_',' ')}</span></div>
+        <div class="vet-sub">${pet?pet.name+' · ':''}${v.clinic_name||''}${v.vet_name?' · Dr. '+v.vet_name:''} · ${fmtDate(v.visit_date)}</div>
+        ${v.diagnosis?`<div style="font-size:12px;color:var(--text3);margin-top:4px">Dx: ${v.diagnosis.slice(0,70)}${v.diagnosis.length>70?'…':''}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="delete-row-btn" onclick="deleteVetVisit('${v.id}')">🗑 Delete</button>
+        <button onclick="openDocUploadFor('vet_visit','${v.id}','${pet?.id||''}')" style="padding:4px 10px;background:var(--blue-light);color:var(--blue);border:none;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">📎 Add Doc</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function saveVetVisit(){
+  const petId=document.getElementById('vet-pet-id').value;const reason=document.getElementById('vet-reason').value.trim();const date=document.getElementById('vet-date').value;
+  if(!reason||!date){toast('Reason and date required');return;}
+  const btn=document.getElementById('vet-save-btn');btn.disabled=true;btn.textContent='Saving…';
+  const followup=document.getElementById('vet-followup').value;
+  const{error}=await sb.from('vet_visits').insert({user_id:user.id,pet_id:petId||null,visit_date:date,visit_type:document.getElementById('vet-type').value,clinic_name:document.getElementById('vet-clinic').value.trim()||null,vet_name:document.getElementById('vet-doctor').value.trim()||null,reason,diagnosis:document.getElementById('vet-dx').value.trim()||null,treatment:document.getElementById('vet-tx').value.trim()||null,medications_prescribed:document.getElementById('vet-meds').value.trim()||null,follow_up_date:followup||null,notes:document.getElementById('vet-notes').value.trim()||null,cost_usd:parseFloat(document.getElementById('vet-cost').value)||null});
+  if(error){toast('Error: '+error.message);btn.disabled=false;btn.textContent='Save Visit';return;}
+  // Auto-create follow-up calendar event
+  if(followup&&petId){await sb.from('events').insert({user_id:user.id,pet_id:petId,type:'vet',title:'Follow-Up: '+reason,event_date:followup});await loadEvents();renderCalendar();}
+  closeSheet('vet-sheet');
+  ['vet-clinic','vet-doctor','vet-reason','vet-dx','vet-tx','vet-meds','vet-followup','vet-notes','vet-cost','vet-date'].forEach(id=>document.getElementById(id).value='');
+  btn.disabled=false;btn.textContent='Save Visit';await loadVetVisits();buildActivity();
+  toast('Vet visit saved 🏥'+(followup?' · Follow-up added to calendar 📅':''));
+}
+async function openVetDetail(id){
+  const v=vetVisits.find(x=>x.id===id);if(!v)return;
+  const pet=pets.find(p=>p.id===v.pet_id);
+  document.getElementById('vet-d-title').textContent=v.reason;
+  const rows=[
+    {l:'Date',v:fmtDate(v.visit_date)},{l:'Visit Type',v:(v.visit_type||'checkup').replace('_',' ')},
+    pet?{l:'Pet',v:pet.name}:null,
+    v.clinic_name?{l:'Clinic',v:v.clinic_name}:null,v.vet_name?{l:'Vet',v:'Dr. '+v.vet_name}:null,
+    v.diagnosis?{l:'Diagnosis',v:v.diagnosis}:null,v.treatment?{l:'Treatment',v:v.treatment}:null,
+    v.medications_prescribed?{l:'Medications Prescribed',v:v.medications_prescribed}:null,
+    v.follow_up_date?{l:'Follow-Up',v:fmtDate(v.follow_up_date)}:null,
+    v.cost_usd?{l:'Cost',v:'$'+parseFloat(v.cost_usd).toFixed(2)}:null,
+    v.notes?{l:'Notes',v:v.notes}:null,
+  ].filter(Boolean);
+  document.getElementById('vet-d-body').innerHTML=
+    rows.map(r=>`<div class="detail-row"><div class="detail-label">${r.l}</div><div class="detail-val">${r.v}</div></div>`).join('')+
+    `<div class="fa"><button class="btn-s btn-danger" onclick="deleteVetVisit('${v.id}')">🗑 Delete</button><button class="btn-p" onclick="closeSheet('vet-detail-sheet')">Close</button></div>`;
+  openSheet('vet-detail-sheet');
+}
+async function deleteVetVisit(id){if(!confirm('Delete this vet visit?'))return;await sb.from('vet_visits').delete().eq('id',id);closeSheet('vet-detail-sheet');await loadVetVisits();toast('Deleted');}
+
+// Medications (ongoing)
+async function loadMedications(){
+  const el=document.getElementById('meds-list');if(!el)return;
+  let q=sb.from('medications').select('*').eq('user_id',user.id).eq('active',true).order('created_at',{ascending:false});
+  if(healthPetId)q=q.eq('pet_id',healthPetId);
+  const{data}=await q;medications=data||[];
+  if(!medications.length){el.innerHTML=`<div class="empty-state"><div class="es-icon">💊</div><p>No active medications</p><div class="es-sub">Tap + to add a medication</div></div>`;return;}
+  const today=new Date().toISOString().split('T')[0];
+  const{data:doses}=await sb.from('medication_doses').select('medication_id').eq('user_id',user.id).gte('given_at',today+'T00:00:00');
+  const givenToday=new Set((doses||[]).map(d=>d.medication_id));
+  el.innerHTML=medications.map(m=>{
+    const pet=pets.find(p=>p.id===m.pet_id);const given=givenToday.has(m.id);
+    return`<div class="med-row">
+      <div class="med-info">
+        <div class="med-name">${m.name}</div>
+        <div class="med-sub">${m.dosage||''}${m.dosage&&m.frequency?' · ':''}${m.frequency||''}${pet?' · '+pet.name:''}</div>
+        ${m.instructions?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${m.instructions}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        ${given?`<div class="given-label">✓ Given today</div>`:`<button class="give-btn" onclick="giveMed('${m.id}','${m.pet_id||''}')">Give Now</button>`}
+        <button class="delete-row-btn" onclick="deleteMedication('${m.id}')">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function saveMedication(){
+  const petId=document.getElementById('am-pet-id').value;const name=document.getElementById('am-name').value.trim();
+  if(!name){toast('Medication name required');return;}
+  const btn=document.getElementById('am-save-btn');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const{error}=await sb.from('medications').insert({user_id:user.id,pet_id:petId||null,name,dosage:document.getElementById('am-dosage').value.trim()||null,frequency:document.getElementById('am-freq').value,instructions:document.getElementById('am-instruct').value.trim()||null,start_date:document.getElementById('am-start').value||null,end_date:document.getElementById('am-end').value||null});
+    if(error)throw error;
+    closeSheet('add-med-sheet');['am-name','am-dosage','am-instruct','am-start','am-end'].forEach(id=>document.getElementById(id).value='');
+    await loadMedications();toast('Medication added 💊');
+  }catch(e){toast('Error: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Save';}
+}
+async function giveMed(medId,petId){
+  await sb.from('medication_doses').insert({user_id:user.id,medication_id:medId,pet_id:petId||null,given_at:new Date().toISOString()});
+  await loadMedications();toast('Marked as given ✓');
+}
+
+// Weight
+async function loadWeightLogs(){
+  const el=document.getElementById('weight-list');if(!el)return;
+  let q=sb.from('weight_logs').select('*').eq('user_id',user.id).order('logged_at',{ascending:false}).limit(10);
+  if(healthPetId)q=q.eq('pet_id',healthPetId);
+  const{data}=await q;weightLogs=data||[];
+  if(!weightLogs.length){el.innerHTML=`<div class="empty-state"><div class="es-icon">⚖️</div><p>No weight logs yet</p></div>`;return;}
+  el.innerHTML=weightLogs.map((w,i)=>{
+    const prev=weightLogs[i+1];const pet=pets.find(p=>p.id===w.pet_id);
+    let trend='';if(prev){const d=(w.weight_lbs-prev.weight_lbs);trend=d>0?`<span style="color:var(--red);font-size:11px"> ▲${d.toFixed(1)}</span>`:d<0?`<span style="color:var(--green);font-size:11px"> ▼${Math.abs(d).toFixed(1)}</span>`:'<span style="color:var(--text3);font-size:11px"> —</span>';}
+    return`<div class="weight-row"><div><div class="wt-val">${parseFloat(w.weight_lbs).toFixed(1)} lbs${trend}</div><div class="wt-date">${new Date(w.logged_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}${pet?' · '+pet.name:''}</div>${w.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${w.notes}</div>`:''}</div><button class="delete-row-btn" onclick="deleteWeightLog('${w.id}')">🗑</button></div>`;
+  }).join('');
+}
+async function saveWeight(){
+  const petId=document.getElementById('wt-pet-id').value;const lbs=parseFloat(document.getElementById('wt-lbs').value);
+  if(!lbs){toast('Weight required');return;}
+  await sb.from('weight_logs').insert({user_id:user.id,pet_id:petId||null,weight_lbs:lbs,notes:document.getElementById('wt-notes').value.trim()||null});
+  if(petId){await sb.from('pets').update({weight_lbs:lbs}).eq('id',petId);const p=pets.find(x=>x.id===petId);if(p)p.weight_lbs=lbs;}
+  closeSheet('weight-sheet');document.getElementById('wt-lbs').value='';document.getElementById('wt-notes').value='';
+  await loadWeightLogs();renderPetDetail();toast('Weight logged ⚖️');
+}
+
+// Intake
+function setIntake(type,level,btn){intakeLevels[type]=level;const rowId=type+'-row';document.getElementById(rowId).querySelectorAll('.intake-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
+async function saveIntake(){
+  const petId=document.getElementById('in-pet-id').value||null;const notes=document.getElementById('in-notes').value.trim()||null;
+  await Promise.all([sb.from('intake_logs').insert({user_id:user.id,pet_id:petId,type:'food',level:intakeLevels.food,notes}),sb.from('intake_logs').insert({user_id:user.id,pet_id:petId,type:'water',level:intakeLevels.water,notes})]);
+  closeSheet('intake-sheet');document.getElementById('in-notes').value='';buildActivity();toast(`Intake logged — Food: ${intakeLevels.food}, Water: ${intakeLevels.water} 💧`);
+}
+
+// ════ DOCUMENTS ════
+const docTypeLabels={'vet_visit':'Vet Visit Summary','vaccine':'Vaccine Record','lab':'Lab Results','prescription':'Prescription','xray':'X-Ray / Imaging','general':'Health Record'};
+const docTypeIcons={'vet_visit':'🏥','vaccine':'💉','lab':'🔬','prescription':'💊','xray':'🩻','general':'📋'};
+
+function previewDocFile(input){
+  const file=input.files[0];if(!file)return;
+  const prev=document.getElementById('doc-file-preview');
+  const isPDF=file.type==='application/pdf';
+  if(isPDF){prev.innerHTML=`<div style="font-size:28px;margin-bottom:6px">📄</div><div style="font-size:13px;color:var(--blue);font-weight:600">${file.name}</div>`;}
+  else{const r=new FileReader();r.onload=e=>{prev.innerHTML=`<img src="${e.target.result}" style="max-height:120px;max-width:100%;border-radius:6px;object-fit:contain"/><div style="font-size:11px;color:var(--text3);margin-top:4px">${file.name}</div>`;};r.readAsDataURL(file);}
+}
+function openDocUploadFor(type,linkedId,petId){
+  document.getElementById('doc-type').value=type;
+  if(petId)document.getElementById('doc-pet-id').value=petId;
+  document.getElementById('doc-linked-id').value=linkedId;
+  openSheet('doc-upload-sheet');
+}
+async function saveDocument(){
+  const name=document.getElementById('doc-name').value.trim();
+  const file=document.getElementById('doc-file-input').files[0];
+  if(!name){toast('Document name required');return;}
+  if(!file){toast('Please select a file');return;}
+  const btn=document.getElementById('doc-save-btn');btn.disabled=true;btn.textContent='Uploading…';
+  try{
+    const petId=document.getElementById('doc-pet-id').value||null;
+    const linkedType=document.getElementById('doc-type').value;
+    const linkedId=document.getElementById('doc-linked-id').value||null;
+    const ext=file.name.split('.').pop();
+    const path=`${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const{error:upErr}=await sb.storage.from('health-docs').upload(path,file,{upsert:false});
+    if(upErr)throw upErr;
+    const{data:ud}=sb.storage.from('health-docs').getPublicUrl(path);
+    const fileType=file.type==='application/pdf'?'pdf':file.type.startsWith('image/')?'image':'other';
+    const{error}=await sb.from('health_documents').insert({user_id:user.id,pet_id:petId,linked_type:linkedType,linked_id:linkedId,file_name:name,file_url:ud.publicUrl,file_type:fileType,notes:document.getElementById('doc-notes').value.trim()||null});
+    if(error)throw error;
+    closeSheet('doc-upload-sheet');
+    ['doc-name','doc-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('doc-file-input').value='';
+    document.getElementById('doc-file-preview').innerHTML='<div style="font-size:28px;margin-bottom:6px">📎</div>Tap to choose a photo or PDF';
+    document.getElementById('doc-linked-id').value='';
+    await loadDocuments();toast('Document uploaded ✓');
+  }catch(e){toast('Upload error: '+e.message);console.error(e);}
+  finally{btn.disabled=false;btn.textContent='Upload';}
+}
+async function loadDocuments(){
+  const el=document.getElementById('docs-list');if(!el)return;
+  let q=sb.from('health_documents').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+  if(healthPetId)q=q.eq('pet_id',healthPetId);
+  const{data}=await q;
+  if(!data?.length){el.innerHTML=`<div class="empty-state"><div class="es-icon">📎</div><p>No documents yet</p><div class="es-sub">Upload vet summaries, vaccine records, lab results</div></div>`;return;}
+  el.innerHTML=data.map(d=>{
+    const pet=pets.find(p=>p.id===d.pet_id);
+    const isImg=d.file_type==='image';const isPDF=d.file_type==='pdf';
+    return`<div class="doc-item">
+      ${isImg?`<img class="doc-thumb" src="${d.file_url}" onclick="openLightbox('${d.file_url}')" />`:`<div class="doc-icon">${isPDF?'📄':docTypeIcons[d.linked_type]||'📋'}</div>`}
+      <div class="doc-info">
+        <div class="doc-name">${d.file_name}</div>
+        <div class="doc-meta">${docTypeLabels[d.linked_type]||'Document'}${pet?' · '+pet.name:''} · ${new Date(d.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+        ${d.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${d.notes}</div>`:''}
+      </div>
+      <div class="doc-actions">
+        <a class="doc-open-btn" href="${d.file_url}" target="_blank">View</a>
+        <button class="doc-del-btn" onclick="deleteDocument('${d.id}','${d.file_url}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function deleteDocument(id,fileUrl){
+  if(!confirm('Delete this document?'))return;
+  try{
+    const pathMatch=fileUrl.match(/health-docs\/(.+?)(\?|$)/);
+    if(pathMatch)await sb.storage.from('health-docs').remove([decodeURIComponent(pathMatch[1])]);
+    await sb.from('health_documents').delete().eq('id',id);
+    await loadDocuments();toast('Document deleted');
+  }catch(e){toast('Error: '+e.message);}
+}
+async function deleteWeightLog(id){
+  if(!confirm('Delete this weight entry?'))return;
+  await sb.from('weight_logs').delete().eq('id',id);await loadWeightLogs();toast('Deleted');
+}
+async function deleteMedication(id){
+  if(!confirm('Delete this medication?'))return;
+  await sb.from('medication_doses').delete().eq('medication_id',id);
+  await sb.from('medications').delete().eq('id',id);await loadMedications();toast('Deleted');
+}
+
+// ════ NOTES ════
+function renderNotesChips(){
+  const el=document.getElementById('notes-chips');if(!el)return;
+  el.innerHTML='<button class="pet-chip'+(notesPetFilter===null?' active':'')+'" onclick="filterNotes(null)">All Pets</button>'+pets.map(p=>`<button class="pet-chip${p.id===notesPetFilter?' active':''}" onclick="filterNotes('${p.id}')">${petThumb(p)}${p.name}</button>`).join('');
+}
+function filterNotes(id){notesPetFilter=id;renderNotesChips();loadNotes();}
+async function loadNotes(){
+  const el=document.getElementById('notes-list');if(!el)return;
+  let q=sb.from('notes').select('*,pets(name,species)').eq('user_id',user.id).order('created_at',{ascending:false}).limit(50);
+  if(notesPetFilter)q=q.eq('pet_id',notesPetFilter);
+  const{data}=await q;
+  if(!data?.length){el.innerHTML=`<div class="empty-state" style="margin-top:20px"><div class="es-icon">📝</div><p>No notes yet</p><div class="es-sub">Use the Quick Log to add journal entries</div></div>`;return;}
+  el.innerHTML=data.map(n=>`<div class="note-card">${n.pets?`<div class="note-pet-tag">${n.pets.species==='Cat'?'🐱':'🐾'} ${n.pets.name}</div>`:''}<div class="note-text">${n.note}</div><div class="note-ts">${new Date(n.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</div></div>`).join('');
+}
+async function saveNote(){
+  const note=document.getElementById('note-text').value.trim();if(!note){toast('Note is empty');return;}
+  const petId=document.getElementById('note-pet-id').value||null;
+  await sb.from('notes').insert({user_id:user.id,pet_id:petId,note});
+  closeSheet('note-sheet');document.getElementById('note-text').value='';
+  await loadNotes();buildActivity();toast('Note saved 📝');
+}
+
+// ════ QUICK LOG ════
+async function saveFeed(){
+  const petId=document.getElementById('feed-pet-id').value||null;
+  await sb.from('feedings').insert({user_id:user.id,pet_id:petId,amount:document.getElementById('feed-amount').value.trim()||null,notes:document.getElementById('feed-notes').value.trim()||null});
+  closeSheet('feed-sheet');['feed-amount','feed-notes'].forEach(id=>document.getElementById(id).value='');buildActivity();toast('Feeding logged 🍗');
+}
+async function saveMedLog(){
+  const petId=document.getElementById('ml-pet-id').value||null;const med=document.getElementById('ml-name').value.trim();if(!med){toast('Medication name required');return;}
+  await sb.from('med_logs').insert({user_id:user.id,pet_id:petId,medication:med,notes:document.getElementById('ml-notes').value.trim()||null});
+  closeSheet('med-log-sheet');['ml-name','ml-notes'].forEach(id=>document.getElementById(id).value='');buildActivity();toast('Medication logged 💊');
+}
+
+// ════ EVENTS / CALENDAR ════
+async function loadEvents(){
+  const{data}=await sb.from('events').select('*').eq('user_id',user.id).order('event_date');
+  events=data||[];renderEventsList();renderCalendar();buildAlerts();
+}
+const evtIcons={vet:'🩺',grooming:'✂️',vaccine:'💉',medication:'💊',playdate:'🐾',training:'🎓',other:'📌'};
+function renderEventsList(){
+  const el=document.getElementById('events-list');
+  const today=new Date();today.setHours(0,0,0,0);
+  const up=events.filter(e=>new Date(e.event_date+'T00:00:00')>=today).slice(0,15);
+  if(!up.length){el.innerHTML=`<div class="empty-state"><div class="es-icon">📅</div><p>No upcoming events</p></div>`;return;}
+  el.innerHTML=up.map(e=>{const d=new Date(e.event_date+'T00:00:00');const pet=pets.find(p=>p.id===e.pet_id);return`<div class="event-item"><div class="event-date-box"><div class="edb-day">${d.getDate()}</div><div class="edb-mon">${d.toLocaleDateString('en-US',{month:'short'})}</div></div><div><div class="ei-title">${evtIcons[e.type]||'📌'} ${e.title}</div><div class="ei-sub">${pet?pet.name+' · ':''}${e.event_time?e.event_time.slice(0,5)+' · ':''}${e.location||''}</div></div></div>`;}).join('');
+}
+function renderCalendar(){
+  const el=document.getElementById('cal-grid');const hel=document.getElementById('cal-header');
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  document.getElementById('cal-month-label').textContent=new Date(y,m).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  hel.innerHTML=['S','M','T','W','T','F','S'].map(d=>`<div class="cal-hcell">${d}</div>`).join('');
+  const first=new Date(y,m,1).getDay();const total=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  const evDays=new Set(events.filter(e=>{const d=new Date(e.event_date+'T00:00:00');return d.getFullYear()===y&&d.getMonth()===m;}).map(e=>new Date(e.event_date+'T00:00:00').getDate()));
+  let html='';
+  for(let i=0;i<first;i++)html+=`<div class="cal-cell other-month">${new Date(y,m,1-first+i).getDate()}</div>`;
+  for(let d=1;d<=total;d++){const isToday=d===today.getDate()&&m===today.getMonth()&&y===today.getFullYear();html+=`<div class="cal-cell${isToday?' today':''}${evDays.has(d)?' has-event':''}" onclick="calDay(${d})">${d}</div>`;}
+  el.innerHTML=html;
+}
+function calPrev(){calDate=new Date(calDate.getFullYear(),calDate.getMonth()-1,1);renderCalendar();}
+function calNext(){calDate=new Date(calDate.getFullYear(),calDate.getMonth()+1,1);renderCalendar();}
+function calDay(d){document.getElementById('evt-date').value=`${calDate.getFullYear()}-${String(calDate.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;openSheet('add-event-sheet');}
+async function saveEvent(){
+  const title=document.getElementById('evt-title').value.trim();const date=document.getElementById('evt-date').value;
+  if(!title||!date){toast('Title and date required');return;}
+  const btn=document.getElementById('evt-save-btn');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const{error}=await sb.from('events').insert({user_id:user.id,pet_id:document.getElementById('evt-pet-id').value||null,type:document.getElementById('evt-type').value,title,event_date:date,event_time:document.getElementById('evt-time').value||null,location:document.getElementById('evt-notes').value.trim()||null});
+    if(error)throw error;
+    closeSheet('add-event-sheet');['evt-title','evt-date','evt-time','evt-notes'].forEach(id=>document.getElementById(id).value='');
+    await loadEvents();toast('Event saved ✓');
+  }catch(e){toast('Error: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Save Event';}
+}
+
+// ════ CONTACTS ════
+async function loadContacts(){
+  const{data}=await sb.from('contacts').select('*').eq('user_id',user.id).order('created_at');
+  contacts=data||[];renderContacts();
+}
+const conIcons={vet:'🏥',emergency_vet:'🚨',groomer:'✂️',walker:'🦮',sitter:'🏠',emergency:'👤',other:'📞'};
+const conLabels={vet:'Primary Vet',emergency_vet:'Emergency Vet · 24/7',groomer:'Dog Groomer',walker:'Dog Walker',sitter:'Dog Sitter / Caregiver',emergency:'Emergency Contact',other:'Contact'};
+function renderContacts(){
+  const mainEl=document.getElementById('contacts-list');const emergEl=document.getElementById('emerg-list');
+  const main=contacts.filter(c=>c.type!=='emergency');const emerg=contacts.filter(c=>c.type==='emergency');
+  mainEl.innerHTML=main.length?main.map(conHTML).join(''):`<div class="empty-state"><div class="es-icon">📞</div><p>No contacts yet</p></div>`;
+  emergEl.innerHTML=emerg.length?emerg.map(conHTML).join(''):`<div class="empty-state"><div class="es-icon">👤</div><p>No emergency contacts</p></div>`;
+}
+function conHTML(c){return`<div class="contact-item"><div class="con-av">${conIcons[c.type]||'📞'}</div><div class="con-info"><div class="con-name">${c.name}${c.has_access?`<span class="access-badge">Has Access</span>`:''}</div><div class="con-type">${conLabels[c.type]||'Contact'}</div>${c.notes?`<div class="con-note">${c.notes}</div>`:''}</div><div class="con-btns">${c.phone?`<a class="con-btn" href="tel:${c.phone}">📞</a>`:''}${c.address?`<a class="con-btn" href="https://maps.google.com?q=${encodeURIComponent(c.address)}" target="_blank">📍</a>`:''}</div></div>`;}
+async function saveContact(){
+  const name=document.getElementById('con-name').value.trim();if(!name){toast('Name required');return;}
+  const btn=document.getElementById('con-save-btn');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const{error}=await sb.from('contacts').insert({user_id:user.id,type:document.getElementById('con-type').value,name,phone:document.getElementById('con-phone').value.trim()||null,address:document.getElementById('con-address').value.trim()||null,notes:document.getElementById('con-notes').value.trim()||null,has_access:document.getElementById('con-access').checked});
+    if(error)throw error;
+    closeSheet('add-contact-sheet');['con-name','con-phone','con-address','con-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('con-access').checked=false;
+    await loadContacts();toast('Contact saved ✓');
+  }catch(e){toast('Error: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Save Contact';}
+}
+function copyShareLink(){const link=`${window.location.origin}?share=${user.id}`;navigator.clipboard.writeText(link).then(()=>toast('Share link copied! 🔗')).catch(()=>toast('Link: '+link));}
+
+// ════ HOME ════
+function buildStats(){
+  const ago=new Date();ago.setDate(ago.getDate()-7);const wk=walks.filter(w=>new Date(w.date)>ago);
+  document.getElementById('s-walks').textContent=wk.length;const mins=wk.reduce((a,w)=>a+(w.duration_minutes||0),0);
+  document.getElementById('s-time').textContent=mins>=60?(mins/60).toFixed(1)+'h':mins+'m';
+  document.getElementById('s-pets').textContent=pets.length;document.getElementById('s-vax').textContent=pets.length?'✓':'—';
+}
+async function buildAlerts(){
+  const el=document.getElementById('home-alerts');
+  // Hard 5-second timeout — never spins forever
+  const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),5000));
+  try{
+    const alerts=[];
+    const[vaxRes,symRes]=await Promise.race([
+      Promise.all([
+        sb.from('vaccines').select('id,name,expiry_date,pet_id').eq('user_id',user.id),
+        sb.from('symptoms').select('id,symptom,pet_id').eq('user_id',user.id).eq('status','ongoing').limit(5)
+      ]),
+      timeout.then(()=>{throw new Error('timeout');})
+    ]);
+    (vaxRes.data||[]).forEach(v=>{
+      if(!v.expiry_date)return;
+      const d=Math.ceil((new Date(v.expiry_date+'T00:00:00')-new Date())/(864e5));
+      const pet=pets.find(p=>p.id===v.pet_id);
+      if(d<0)alerts.push({dot:'red',text:`${v.name} overdue`,sub:pet?.name||''});
+      else if(d<=30)alerts.push({dot:'yellow',text:`${v.name} due in ${d} days`,sub:pet?.name||''});
+    });
+    (symRes.data||[]).forEach(s=>{
+      const pet=pets.find(p=>p.id===s.pet_id);
+      alerts.push({dot:'red',text:`Ongoing: ${s.symptom}`,sub:pet?.name||''});
+    });
+    const today=new Date();today.setHours(0,0,0,0);const in7=new Date();in7.setDate(in7.getDate()+7);
+    events.filter(e=>{const d=new Date(e.event_date+'T00:00:00');return d>=today&&d<=in7;}).forEach(e=>alerts.push({dot:'blue',text:e.title,sub:fmtDate(e.event_date)}));
+    if(!alerts.length){el.innerHTML=`<div class="card-body" style="color:var(--text2);font-size:14px;text-align:center;padding:20px">No upcoming alerts — you're all good! ✓</div>`;return;}
+    el.innerHTML=`<div>${alerts.slice(0,6).map(a=>`<div class="alert-item"><div class="alert-dot ${a.dot}"></div><div><div style="font-size:14px;font-weight:600">${a.text}</div><div style="font-size:12px;color:var(--text3)">${a.sub}</div></div></div>`).join('')}</div>`;
+    if(alerts.length)document.getElementById('notif-dot').classList.add('show');
+  }catch(e){el.innerHTML=`<div class="card-body" style="color:var(--text2);font-size:14px;text-align:center;padding:20px">No upcoming alerts — you're all good! ✓</div>`;}
+}
+function buildActivity(){
+  const el=document.getElementById('home-activity');
+  try{
+    const items=[];
+    walks.slice(0,3).forEach(w=>{const pet=pets.find(p=>p.id===w.pet_id);items.push({icon:'🦮',text:`Walk${pet?' with '+pet.name:''}`,sub:`${w.duration_minutes||0}m${w.distance_miles?' · '+parseFloat(w.distance_miles).toFixed(2)+' mi':''}`,ts:new Date(w.date)});});
+    items.sort((a,b)=>b.ts-a.ts);
+    if(!items.length){el.innerHTML=`<div class="card-body" style="color:var(--text2);font-size:14px;padding:16px">No activity yet — start logging!</div>`;return;}
+    el.innerHTML=`<div>${items.slice(0,5).map(i=>`<div class="activity-item"><div class="act-icon">${i.icon}</div><div><div style="font-weight:600;font-size:14px">${i.text}</div><div style="font-size:12px;color:var(--text2)">${i.sub} · ${i.ts.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div></div></div>`).join('')}</div>`;
+  }catch(e){el.innerHTML=`<div class="card-body" style="color:var(--text2);font-size:14px;padding:16px">No activity yet — start logging!</div>`;}
+}
+
+// ════ UI HELPERS ════
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById(`nav-${tab}`).classList.add('active');
+}
+function openSheet(id){document.getElementById(id).classList.add('show');}
+function closeSheet(id){document.getElementById(id).classList.remove('show');}
+function previewPhoto(input,previewId,iconId){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{document.getElementById(previewId).src=e.target.result;document.getElementById(previewId).style.display='block';document.getElementById(iconId).style.display='none';};r.readAsDataURL(file);}
+function openLightbox(src){document.getElementById('lb-img').src=src;openSheet('lightbox');}
+function fmtDate(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';}
+let toastT;function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),3500);}
+
+// ════ INIT ════
+(async()=>{
+  try{
+    // Refresh session first to ensure token is valid
+    const{data:{session},error}=await sb.auth.getSession();
+    if(session?.user){
+      // Refresh the token to make sure it's not stale
+      const{data:refreshed}=await sb.auth.refreshSession();
+      const activeSession=refreshed?.session||session;
+      if(activeSession?.user){
+        user=activeSession.user;
+        document.getElementById('auth-screen').style.display='none';
+        document.getElementById('app').classList.add('show');
+        await boot();
+      }else{
+        await sb.auth.signOut();
+      }
+    }
+  }catch(e){
+    console.error('Init error:',e);
+    await sb.auth.signOut();
+  }
+})();
+</script>
+</body>
+</html>
