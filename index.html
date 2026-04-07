@@ -248,10 +248,6 @@ select.fi{cursor:pointer}textarea.fi{resize:vertical}
     <input id="auth-email" type="email" placeholder="Email address" autocomplete="email"/>
     <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password"/>
     <button class="auth-forgot" id="auth-forgot" onclick="forgotPassword()">Forgot password?</button>
-    <div id="auth-legal-wrap" style="display:none;align-items:flex-start;gap:10px;background:#F8F9FA;border-radius:9px;padding:11px 13px;border:1.5px solid #E5E7EB">
-      <input type="checkbox" id="auth-legal-check" style="width:18px;height:18px;margin-top:1px;accent-color:#2C7BE5;flex-shrink:0;cursor:pointer"/>
-      <label for="auth-legal-check" style="font-size:12px;color:#6B7280;line-height:1.5;cursor:pointer">I agree to the <a href="/legal.html" style="color:#2C7BE5;text-decoration:none;font-weight:600">Privacy Policy</a> and <a href="/legal.html" style="color:#2C7BE5;text-decoration:none;font-weight:600">Terms of Service</a>. I understand my data is used only to provide this service and is never sold.</label>
-    </div>
     <div class="auth-err" id="auth-err"></div>
     <button class="auth-submit-btn" id="auth-submit">Sign In</button>
     <button class="auth-toggle-btn" id="auth-toggle">Don't have an account? Sign up</button>
@@ -548,7 +544,7 @@ select.fi{cursor:pointer}textarea.fi{resize:vertical}
 
 <script>
 const{createClient}=supabase;
-const sb=createClient('https://otfwryjoxxkctznboksp.supabase.co','sb_publishable_6gSohHTrAI_apcSuKyIJFQ_9bhpRni7',{auth:{storage:window.localStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'ruff-society-auth'}});
+const sb=createClient('https://otfwryjoxxkctznboksp.supabase.co','sb_publishable_6gSohHTrAI_apcSuKyIJFQ_9bhpRni7');
 let user=null,profile=null;
 let pets=[],selectedPet=null,healthPetId=null,notesPetFilter=null;
 let walks=[],events=[],contacts=[];
@@ -572,17 +568,12 @@ document.getElementById('auth-toggle').onclick=()=>{
   document.getElementById('auth-heading').textContent=s?'Create your account 🐾':'Welcome back 👋';
   document.getElementById('auth-sub').textContent=s?'Join Ruff Society Health today':'Sign in to continue';
   document.getElementById('auth-err').textContent='';
-  document.getElementById('auth-legal-wrap').style.display=s?'flex':'none';
-  if(!s)document.getElementById('auth-legal-check').checked=false;
 };
 document.getElementById('auth-submit').onclick=async()=>{
   const email=document.getElementById('auth-email').value.trim();
   const pw=document.getElementById('auth-password').value;
   const err=document.getElementById('auth-err');err.textContent='';
   if(!email||!pw){err.style.color='var(--red)';err.textContent='Please fill in all fields.';return;}
-  if(authMode==='signup'&&!document.getElementById('auth-legal-check').checked){
-    err.style.color='var(--red)';err.textContent='Please agree to the Privacy Policy and Terms to continue.';return;
-  }
   document.getElementById('auth-submit').disabled=true;
   if(authMode==='signup'){
     const name=document.getElementById('auth-name').value.trim();
@@ -666,17 +657,6 @@ async function saveProfile(){
   if(file){const ext=file.name.split('.').pop();const path=`${user.id}/avatar.${ext}`;await sb.storage.from('avatars').upload(path,file,{upsert:true});const{data:ud}=sb.storage.from('avatars').getPublicUrl(path);avatarUrl=ud.publicUrl+'?t='+Date.now();}
   await sb.from('profiles').upsert({id:user.id,full_name:name,avatar_url:avatarUrl,updated_at:new Date().toISOString()});
   profile={...profile,full_name:name,avatar_url:avatarUrl};refreshAvatar();closeSheet('profile-sheet');toast('Profile saved ✓');
-}
-
-// ═══ SESSION HELPER — prevents Safari auth token expiry ═══
-async function ensureSession(){
-  try{
-    const{data:{session}}=await sb.auth.getSession();
-    if(!session){await sb.auth.refreshSession();}
-    else if(session.expires_at&&(session.expires_at*1000-Date.now())<300000){
-      await sb.auth.refreshSession();
-    }
-  }catch(e){console.warn('Session refresh:',e);}
 }
 
 // ═══ PETS ═══
@@ -784,9 +764,6 @@ async function savePet(){
   const editId=document.getElementById('pet-edit-id').value;
   const btn=document.getElementById('pet-save-btn');btn.disabled=true;btn.textContent='Saving…';
   try{
-    // Ensure we have a valid session
-    const{data:{session}}=await sb.auth.getSession();
-    if(!session){toast('Session expired — please sign in again');btn.disabled=false;btn.textContent=editId?'Save Changes':'Add Pet';await sb.auth.signOut();return;}
     const data={name,species:document.getElementById('pet-species').value,breed:document.getElementById('pet-breed').value.trim()||null,birthday:document.getElementById('pet-bday').value||null,weight_lbs:parseFloat(document.getElementById('pet-weight').value)||null,sex:document.getElementById('pet-sex').value||null,neutered:document.getElementById('pet-neutered').value==='true',microchip:document.getElementById('pet-chip').value.trim()||null};
     let petId=editId;
     if(editId){await sb.from('pets').update(data).eq('id',editId);const p=pets.find(x=>x.id===editId);if(p)Object.assign(p,data);}
